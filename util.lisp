@@ -87,3 +87,8 @@
   (read-from-string x)
 )
 
+;ƒŠƒXƒg‚Ì’†‚©‚çƒ‰ƒ“ƒ_ƒ€‚Éæ“¾
+(defun random-get( array )
+  (aref array (random (length array)))
+)
+

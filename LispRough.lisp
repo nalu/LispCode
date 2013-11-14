@@ -25,9 +25,17 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 (defparameter *screen-w* 28)
 (defparameter *screen-h* 24)
 (defparameter *screen-map* (make-array (* *screen-w* *screen-h*)))
-(defparameter *object-array* nil)
-;(defparameter *object-array* nil)
-(defparameter *object-num* 0);配列をやめて、追加ができるリストを採用するのが望ましい
+
+
+
+;; (defparameter *object-array* nil)
+;; (defparameter *object-num* 0);配列をやめて、追加ができるリストを採用するのが望ましい
+
+;;object-arrayを追加できる形式に変更
+(defparameter *object-array* (make-array 0 :fill-pointer t :adjustable t))
+(defun object-add (object)
+  (print "add")
+  (vector-push-extend object *object-array*))
 
 ;メソッド変換用(alistにしたい
 (defparameter *def-f-array* (make-array 0 :fill-pointer t :adjustable t))
@@ -46,11 +54,11 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 (defun lr-begin ( &optional (screen-w *default-screen-w*) (screen-h *default-screen-h*) ) 
   (setq *quit* 0)
-  (setq *object-array* (make-array 100))
+;;   (setq *object-array* (make-array 100))
   (setq *screen-w* screen-w )
   (setq *screen-h* screen-h)
   (setq *screen-map* (make-array (* *screen-w* *screen-h*)))
-  (setq *object-num* 0)
+;;   (setq *object-num* 0)
 )
 
 (defun lr-start()
@@ -84,7 +92,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
   (let (obj readkey (push-obj 0))
     (setq readkey (read))
-    (loop for i below *object-num* do
+;;     (loop for i below *object-num* do
+	(loop for i below (length *object-array*) do
    
 	 (setq obj (aref *object-array* i) )
 	 (if (equal (type-of obj) 'button)
@@ -111,7 +120,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
   ;Object - draw
-  (loop for i below *object-num* do
+;;   (loop for i below *object-num* do
+  (loop for i below (length *object-array*) do
        (let ((obj (aref *object-array* i)))
 		 (if (equal (label-visible obj) t)
 		     (draw-label (aref *object-array* i ))
@@ -226,12 +236,12 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 
-;Object
+;--------------------------------- GOB ---------------------------------
 
-(defun add-object ( obj )
-  (setf (aref *object-array* *object-num*) obj)
-  (setq *object-num* (+ *object-num* 1))
-)
+;; (defun add-object ( obj )
+;;   (setf (aref *object-array* *object-num*) obj)
+;;   (setq *object-num* (+ *object-num* 1))
+;; )
 
 (defstruct object )
 (defmethod object-draw())
@@ -276,17 +286,21 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (setf (button-visible obj) visible)
 )
 
+
+;;初期化と登録を同時に行う関数。基本的にオブジェクトはこれで作る
 (defun new-square (x y w h)
   (let (obj)
 	(setq obj (make-label :x x :y y :w w :h h))
-	(add-object obj)
+;; 	(add-object obj)
+	(object-add obj)
 	obj)
 )
 
 (defun new-label ( x y w h title )
   (let (obj)
 	(setq obj (make-label :x x :y y :w w :h h :text title))
-	(add-object obj)
+;; 	(add-object obj)
+	(object-add obj)
 	obj
 	)
 )
@@ -294,7 +308,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 (defun new-button ( x y w h title key call )
   (let (obj)
     (setq obj (make-button :x x :y y :w w :h h :text title :key key :call call))
-	(add-object obj)
+;; 	(add-object obj)
+	(object-add obj)
 	obj)
 )
 
@@ -329,6 +344,198 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		(eval (read-from-string (format nil "(defparameter ~a ~d)" 
 										(elt ,namelist i) i) ))
 	   )
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;--------------------------------- MULTI GOB ---------------------------------
+
+;;グリッドクラス（テスト）
+;;グリッド、セルの２クラスで構成する
+;;グリッドがセルを持ち、セルが用途に応じたオブジェクトを持っているという構成
+;;ユーザーはセルの位置をカスタマイズしない事を前提とし、
+;;セル上のオブジェクトに自由にアクセスして使う想定
+;;セルは位置インデックスを持ち、位置、範囲指定、検索などを容易に行えるようにする
+(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (array nil) )
+(defun new-grid (x y w-cell-num h-cell-num cell-w cell-h)
+  (let (
+		(obj) 
+		(cell-array (make-array (* w-cell-num h-cell-num)))
+		)
+
+	(loop for i below (length cell-array) do
+		 (setf (aref cell-array i) 
+			   (new-button 
+				(+ x (* (mod i w-cell-num) cell-w )) ;x
+				(+ y (* (truncate i w-cell-num) cell-h))  ;y
+				cell-w cell-h  ;w,h
+				(format nil "~d" i);str
+;;  				'a ;key
+				(read-from-string (format nil "~d" i)) ;グリッド番号をそのままキーに指定
+				#'push-grid) )
+		 )
+;; )										
+
+
+	(setq obj 
+		  (make-grid :x x :y y 
+					 :w-cell-num w-cell-num :h-cell-num h-cell-num
+					 :array cell-array))
+	
+;; 	(add-object obj)
+	obj)
+  
+)
+
+;;指定のグリッド番号に手をセット
+(def-f grid-set-hand ( grid cell-num hand )
+   (set-text (aref (grid-array grid) cell-num)  hand)
+)
+
+
+
+;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
+(def-f get-empty-cell-array (cell-array)
+  (remove-if 
+	 #'(lambda (x) 
+		 (if (or ( equal (button-text x) "o" )  (equal (button-text x) "x"))
+			 t
+			 nil)
+;; 		 ) (grid-array grid))
+		 ) cell-array)
+	
+)
+
+
+;;グリッドの状態から勝敗判定
+(def-f jadge-win()
+  
+)
+
+
+
+;;指定の位置のグリッドを取得
+;;範囲外を指定したらnilを返す
+(def-f grid-get-cell (grid x y)
+  
+  (cond 
+	((>= x (grid-w-cell-num grid)) nil)
+	((>= y (grid-h-cell-num grid)) nil)
+	(t (aref (grid-array grid)
+		(+
+		 (* y (grid-w-cell-num grid))
+		 x )
+		))
+  )
+)
+
+;; 指定のセルのグリッドのｘ位置を返す
+;; (def-f grid-get-cell-x (grid cell)
+;;   (find cell (grid-array grid))
+;; )
+
+
+;;ランダムに空白のセルを取得
+(def-f grid-random-get-empty (grid )
+  (random-get (get-empty-cell-array (grid-array grid)))
+)
+
+;;作り中
+;;ランダムに空白のセルを取得。範囲指定
+;;グリッドのセルから、セルのグリッド上の位置を割り出さないといけない
+;;（ｘ，ｙはボタンの位置であり、グリッド上の座標の情報がない）
+;;ので、結構手間。
+(def-f grid-random-get-empty-area (grid x y w h )
+  (let (area-cell-array)
+	;指定のエリアのセル配列を作成
+	(setq area-cell-array
+		  (remove-if #'(lambda(cell) 
+						 (if (and (>= (button-x cell) x ) (> w w) (> h h) (= 0 0))
+										t;t
+										nil);nil
+						 ) (grid-array grid)))
+  (random-get (get-empty-cell-array area-cell-array))
+  );let
+)
+
+
+;;ランダムにx個の要素を配置
+(def-f grid-put-random( grid put-num )
+  
+  (let (empty-cell)
+	(loop for i below put-num do
+;; 		 (setq empty-cell (random-get (get-empty-cell-array grid)))
+		 (setq empty-cell (grid-random-get-empty grid))
+		 (set-text empty-cell "x")
+		 )
+	)
+	
+)
+
+;;ランダムに要素を配置。ＤＲＭ用
+;;レベル＊４の要素を配置
+;;ベース・ラインより下にランダム配置する
+;;飽和量が一定を超えると、ベースラインより上にも配置する
+(def-f grid-put-random-drm( grid level base-line-y)
+  (let (empty-cell)
+	(loop for i below put-num do
+;; 		 (setq empty-cell (random-get (get-empty-cell-array grid)))
+		 (setq empty-cell (grid-random-get-empty grid))
+		 (set-text empty-cell "x")
+		 )
+	)
+)
+
+;;マッチチェック
+;;マッチのアルゴリズム悩ましい
+;;再帰使う
+;;ターゲットがｘマッチしているかどうかのチェック
+(def-f grid-check-match ( grid x y match-num )
+  (grid-check-match-r grid x y match-num 0)
+)
+
+;;マッチチェック再帰用
+(def-f grid-check-match-r ( grid x y match-num deep-count)
+  ;;マッチ条件を満たしているかチェック
+  (cond 
+	;;マッチ数クリアしたらtを返す
+	((>= match-num deep-count) t)
+	;;セルがなければnil返す
+	
+	;それ以外なら上下左右に潜る
+	(t
+	;;右チェック
+	 (cond 
+	   ((not (= nil (grid-get-cell grid (+ x 1) y))) 
+		;;t時さらに潜る
+		(+ deep-count 1)
+		(grid-check-match-r grid (+ x 1) y match-num deep-count)
+		)
+	   ;;false時なにもしない
+	   )
+	;;左チェック
+	;;上チェック
+	;;下チェック
+	 )
+	)
+)
+
+(def-f grid-get-cell-right (grid target-cell)
+  
 )
 
 

@@ -23,14 +23,16 @@
   (def-v *player-hand* goo)
   (def-v *enemy-hand* goo)
 
-  (defparameter *grid-array* (make-array (* 3 3)));3x3のグリッド用配列用意
+;;   (defparameter *grid-array* (make-array (* 3 3)));3x3のグリッド用配列用意
 
 ;;   (def-v *button-grid-a1* (new-button 3 6 4 4 "a1" 'a #'push-grid))
 ;;   (def-v *button-grid-a2* (new-button 7 6 4 4 "a2" 'a #'push-grid))
 ;;   (def-v *button-grid-a2* (new-button 11 6 4 4 "a3" 'a #'push-grid))
 
   
-  (def-v *grid* (new-grid 3 6 3 3))
+;;   (def-v *grid* (new-grid 3 6 3 3))
+
+   (def-v *grid* (new-grid 3 6 3 3 4 4))
 
 );end-variable
 
@@ -59,18 +61,6 @@
 
   ;グリッド配列をボタンで初期化
 
-;;   (let ((*init_x* 3) (*init_y* 6) (*grid_w* 3) (*grid_h* 3) (*cell_w* 4) (*cell_h* 4)) 
-;; 	(loop for i below (length *grid-array*) do
-;; 		 (setf (aref *grid-array* i) 
-;; 			   (new-button 
-;; 				(+ *init_x* (* (mod i *grid_w*) *cell_w*)) 
-;; 				(+ *init_y* (* (truncate i *grid_h*) *cell_h*)) 
-;; 				*cell_w* *cell_h* 
-;; 				(format nil "~d" i);str
-;; ;;  				'a ;key
-;; 				(read-from-string (format nil "~d" i)) ;グリッド番号をそのままキーに指定
-;; 				#'push-grid) )
-;; 		 ))
 
   (update-money)
 
@@ -94,7 +84,7 @@
 
 (def-f push-grid (obj)
   (print (button-text obj))
-   (set-hand-grid *grid* (stoi (button-text obj)) "o")
+   (grid-set-hand *grid* (stoi (button-text obj)) "o")
 
   ;;enemy
    (enemy-hand)
@@ -108,7 +98,7 @@
   ;;単なるランダム
 
   (let ((target-grid nil) (empty-cell-array nil) )
-	(setq empty-cell-array (get-empty-cell-array *grid*))
+	(setq empty-cell-array (get-empty-cell-array (grid-array *grid*)))
 
 	(cond 
       ;打てる場所が無い
@@ -145,65 +135,3 @@
 
  
 
-
-
-;;グリッドクラス（テスト）
-(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (array nil) )
-(defun new-grid (x y w-cell-num h-cell-num)
-  (let (
-		(obj) 
-		(cell-array (make-array (* w-cell-num h-cell-num)))
-		(cell-w 4)
-		(cell-h 4))
-
-	(loop for i below (length cell-array) do
-		 (setf (aref cell-array i) 
-			   (new-button 
-				(+ x (* (mod i w-cell-num) cell-w )) 
-				(+ y (* (truncate i h-cell-num) cell-h)) 
-				cell-w cell-h 
-				(format nil "~d" i);str
-;;  				'a ;key
-				(read-from-string (format nil "~d" i)) ;グリッド番号をそのままキーに指定
-				#'push-grid) )
-		 )
-;; )										
-
-
-	(setq obj 
-		  (make-grid :x x :y y 
-					 :w-cell-num w-cell-num :h-cell-num h-cell-num
-					 :array cell-array))
-	
-;; 	(add-object obj)
-	obj)
-  
-)
-
-;;指定のグリッド番号に手をセット
-(def-f set-hand-grid ( grid cell-num hand )
-   (set-text (aref (grid-array grid) cell-num)  hand)
-)
-
-
-
-;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
-(def-f get-empty-cell-array (grid)
-  (remove-if 
-	 #'(lambda (x) 
-		 (if (or ( equal (button-text x) "o" )  (equal (button-text x) "x"))
-			 t
-			 nil)
-		 ) (grid-array grid))
-	
-)
-
-
-;;グリッドの状態から勝敗判定
-(def-f jadge-win()
-  
-)
-
-
-
-;;指定の位置のグリッドを取得
