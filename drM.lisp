@@ -11,11 +11,15 @@
   (def-v *money* 100)
   (def-v *hp-gage* 10)
 
-;;   (def-v *button-player-goo* (new-button 3 14 5 3 "[G]oo" 'g #'push-goo))
-;;   (def-v *button-p-choki* (new-button 9 14 5 3 "[C]hoki" 'c #'push-choki))
-;;   (def-v *button-per* (new-button 15 14 5 3 "[P]er" 'p #'push-per))
-;;    (def-v *label-enemy-hand*  (new-label 9 6 5 5 "???"))
- 
+  (def-v *button-next* (new-button 1 9 7 3 "[N]ext" 'n #'push-next))
+  
+  (def-v *button-fall* (new-button 1 12 7 3 "[L]eft" 'n #'push-fall))
+  (def-v *button-fall* (new-button 1 15 7 3 "[R]ight" 'n #'push-fall))
+  (def-v *button-fall* (new-button 1 18 7 3 "[F]all" 'n #'push-fall))
+  (def-v *button-rotate-right* (new-button 1 21 7 3 "[R]otate[R]" 'n #'push-fall))
+  (def-v *button-rotate-left* (new-button 1 24 7 3 "[R]otat[L]" 'n #'push-fall))
+  
+
   (def-enum 'hand '(goo choki per hand-max))
   (def-v *player-hand* goo)
   (def-v *enemy-hand* goo)
@@ -37,7 +41,7 @@
 
 (defun game-start()
 
-  (lr-begin 40 40 )  
+  (lr-begin 42 40 )  
   (game-variable)
   (game-init)
   (lr-start)
@@ -47,7 +51,8 @@
 
   ;グリッド配列をボタンで初期化
   (update-money)
-  (grid-put-random *grid* 50)
+;;   (grid-put-random *grid* 50)
+  (grid-put-random-drm *grid* 20 8)
 )
 
 
@@ -83,9 +88,9 @@
 
   (let ((target-grid nil) (empty-cell-array nil) )
 	(setq empty-cell-array (get-empty-cell-array *grid*))
-
+	
 	(cond 
-      ;打てる場所が無い
+	  ;打てる場所が無い
 	  ((= (length empty-cell-array) 0) (print "utenaiyo"))
 	  ;ランダムに配置
 	  ( t
@@ -95,9 +100,15 @@
 	   )
 	  )
 	)
-  )
+)
 
 
+(def-f push-next()
+  
+)
+
+(def-f push-fall()
+)
 
 
 (def-f win()

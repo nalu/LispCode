@@ -34,7 +34,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;object-arrayを追加できる形式に変更
 (defparameter *object-array* (make-array 0 :fill-pointer t :adjustable t))
 (defun object-add (object)
-  (print "add")
   (vector-push-extend object *object-array*))
 
 ;メソッド変換用(alistにしたい
@@ -370,6 +369,13 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;ユーザーはセルの位置をカスタマイズしない事を前提とし、
 ;;セル上のオブジェクトに自由にアクセスして使う想定
 ;;セルは位置インデックスを持ち、位置、範囲指定、検索などを容易に行えるようにする
+
+;;ということを予定していたが、ぶっちゃけセル使う時はｘ，ｙにアクセスしたいだけなので、
+;;暫定バージョンとしてはgetX, getYができればいいということになった。
+;;AndroidやiOSを見てもわかるが、グリッドクラスは複雑すぎる上完成度を高めるのは難しい
+
+;;セルを使えば効率的なコードも書けるかもしれないが、
+;;どうせコンバートして使うので今セルを作る意味はない。
 (defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (array nil) )
 (defun new-grid (x y w-cell-num h-cell-num cell-w cell-h)
   (let (
@@ -406,6 +412,36 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
    (set-text (aref (grid-array grid) cell-num)  hand)
 )
 
+;;指定のオブジェクトのグリッド上のｘ座標を返す
+(def-f grid-x-cell (grid obj)
+;;   (loop for i below (length (grid-array grid)) do
+;; 	   (if (equal (aref (grid-array grid) i) obj)
+;; 		   (button-x (aref (grid-array grid) i) ) ;t
+;; 		   ;nil
+;; 	   )
+;; 	   )
+
+  (let (index)
+	(setq index (position obj (grid-array grid)))
+	(mod index (grid-w-cell-num grid))
+   )
+
+)
+;;指定のオブジェクトのグリッド上のｙ座標を返す
+(def-f grid-y-cell (grid obj)
+;;   (loop for i below (length (grid-array grid)) do
+;; 	   (if (equal (aref (grid-array grid) i) obj)
+;; 		   (button-y (aref (grid-array grid) i) ) ;t
+;; 		   ;nil
+;; 	   )
+;; 	   )
+
+  (let (index)
+	(setq index (position obj (grid-array grid)))
+	(truncate index (grid-w-cell-num grid))  ;y
+   )
+
+)
 
 
 ;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
@@ -448,6 +484,19 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;   (find cell (grid-array grid))
 ;; )
 
+;;指定エリアのセル配列を返す
+(def-f grid-get-area-cell-array (grid area-x area-y area-w area-h)
+  (remove-if #'(lambda(cell) 
+				 (if (or
+						  (<= (+ area-x area-w) (grid-x-cell grid cell)) 
+						  (<= (+ area-y area-h) (grid-y-cell grid cell)) 
+						  (< (grid-x-cell grid cell) area-x)
+						  (< (grid-y-cell grid cell) area-y)
+						  )
+					 t;t
+					 nil);nil
+				 ) (grid-array grid))
+)
 
 ;;ランダムに空白のセルを取得
 (def-f grid-random-get-empty (grid )
@@ -460,16 +509,12 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;（ｘ，ｙはボタンの位置であり、グリッド上の座標の情報がない）
 ;;ので、結構手間。
 (def-f grid-random-get-empty-area (grid x y w h )
-  (let (area-cell-array)
-	;指定のエリアのセル配列を作成
-	(setq area-cell-array
-		  (remove-if #'(lambda(cell) 
-						 (if (and (>= (button-x cell) x ) (> w w) (> h h) (= 0 0))
-										t;t
-										nil);nil
-						 ) (grid-array grid)))
-  (random-get (get-empty-cell-array area-cell-array))
-  );let
+	;指定のエリアのセル配列を作成後、要素が空の配列を取得し、ランダムで返す
+
+  (random-get 
+   (get-empty-cell-array 
+	(grid-get-area-cell-array grid x y w h))
+   )
 )
 
 
@@ -491,13 +536,23 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;ベース・ラインより下にランダム配置する
 ;;飽和量が一定を超えると、ベースラインより上にも配置する
 (def-f grid-put-random-drm( grid level base-line-y)
-  (let (empty-cell)
-	(loop for i below put-num do
-;; 		 (setq empty-cell (random-get (get-empty-cell-array grid)))
-		 (setq empty-cell (grid-random-get-empty grid))
-		 (set-text empty-cell "x")
+  (loop for i below (* level 4) do
+	   (let ((empty-cell) (color-no))
+		 (setq empty-cell 
+			   (grid-random-get-empty-area grid 
+										   0
+										   base-line-y 
+										   (grid-w-cell-num grid)
+										   (- (grid-h-cell-num grid) base-line-y)
+										   ))
+		 (setq color-no (random 3))
+		 (cond
+		   ((= color-no 0) (set-text empty-cell "o"))
+		   ((= color-no 1) (set-text empty-cell "x"))
+		   ((= color-no 2) (set-text empty-cell "i"))
 		 )
-	)
+	   );let
+	   )
 )
 
 ;;マッチチェック
