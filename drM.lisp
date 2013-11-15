@@ -6,18 +6,19 @@
 
   (def-v *message-label* (new-label 26 2 13 3 "message"))
   (def-v *button-quit* (new-button 28 30 5 3 "[Q]uit" 'q #'push-quit))
-  (def-v *label-money* (new-label 1 6 7 3 "money"))
-  
-  (def-v *money* 100)
-  (def-v *hp-gage* 10)
+  (def-v *label-level* (new-label 1 6 7 3 "level"))
 
-  (def-v *button-next* (new-button 1 9 7 3 "[N]ext" 'n #'push-next))
+  (def-v *level* 1)
+  (def-v *hp-gage* 10)
+  (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
   
-  (def-v *button-fall* (new-button 1 12 7 3 "[L]eft" 'n #'push-fall))
-  (def-v *button-fall* (new-button 1 15 7 3 "[R]ight" 'n #'push-fall))
-  (def-v *button-fall* (new-button 1 18 7 3 "[F]all" 'n #'push-fall))
-  (def-v *button-rotate-right* (new-button 1 21 7 3 "[R]otate[R]" 'n #'push-fall))
-  (def-v *button-rotate-left* (new-button 1 24 7 3 "[R]otat[L]" 'n #'push-fall))
+
+  (def-v *button-next* (new-button 1 12 7 3 "[N]ext" 'n #'push-next))  
+  (def-v *button-fall* (new-button 1 15 7 3 "[L]eft" 'n #'push-fall))
+  (def-v *button-fall* (new-button 1 18 7 3 "[R]ight" 'n #'push-fall))
+  (def-v *button-fall* (new-button 1 21 7 3 "[F]all" 'n #'push-fall))
+  (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]otate[R]" 'n #'push-fall))
+  (def-v *button-rotate-left* (new-button 1 27 7 3 "[R]otat[L]" 'n #'push-fall))
   
 
   (def-enum 'hand '(goo choki per hand-max))
@@ -50,9 +51,9 @@
 (def-f game-init()
 
   ;グリッド配列をボタンで初期化
-  (update-money)
+  (update-level)
 ;;   (grid-put-random *grid* 50)
-  (grid-put-random-drm *grid* 20 8)
+  (grid-put-random-drm *grid* *level* 8)
 )
 
 
@@ -63,10 +64,10 @@
 )
 
 
-(def-f update-money()
+(def-f update-level()
   (let (str)
-    (setq str (format nil "$ ~d" *money*))
-    (set-text *label-money* str)
+    (setq str (format nil "level:~d" *level*))
+    (set-text *label-level* str)
     )
 )
 
@@ -111,21 +112,21 @@
 )
 
 
-(def-f win()
-  (setq *money* (+ *money* 10))
-  (update-money)
-  (set-text *message-label*  "PIKO >>>>>> WIN")
-)
+;; (def-f win()
+;;   (setq *money* (+ *money* 10))
+;;   (update-money)
+;;   (set-text *message-label*  "PIKO >>>>>> WIN")
+;; )
 
-(def-f draw()
-  (set-text *message-label*  "PIKO >>>>>> DRAW")
-)
+;; (def-f draw()
+;;   (set-text *message-label*  "PIKO >>>>>> DRAW")
+;; )
 
-(def-f lose()
-  (setq *money* (- *money* 10))
-  (update-money)
-  (set-text *message-label*  "PIKO >>>>>> LOSE")
-)
+;; (def-f lose()
+;;   (setq *money* (- *money* 10))
+;;   (update-money)
+;;   (set-text *message-label*  "PIKO >>>>>> LOSE")
+;; )
 
 
  
