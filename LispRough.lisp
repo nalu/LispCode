@@ -376,68 +376,124 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 ;;セルを使えば効率的なコードも書けるかもしれないが、
 ;;どうせコンバートして使うので今セルを作る意味はない。
-(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (array nil) )
-(defun new-grid (x y w-cell-num h-cell-num cell-w cell-h)
+
+;;オブジェクトにボタンではなく、独自のもの（ブロッククラス等）を使用したい
+;;状況になってきたので、セルの上にオブジェクトを乗せるシステムにする
+;;グリッド作成時、セルに乗せるアイテムを返すメソッドをセットする事を前提とする
+;;この関数がnilの場合は、デフォルトのオブジェクト作成関数が使用される
+
+;;データの配列をセットが必要
+;;セルの見た目を作る関数とは別に、データ配列を持っておいて、
+;;セル位置と対応してｘ，ｙの取得、座標指定でのデータ取得など行えるようにする
+;;セルの見た目を作る関数でもこのデータを利用する事ができる
+;;セルの見た目を更新する際にもこのデータは使えるだろう
+(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (cell-array nil) (callback-update nil) )
+(defstruct (cell) (x 0) (y 0) (obj nil) (data nil))
+(defun new-grid (x y w-cell-num h-cell-num cell-w cell-h 
+				 callback-make-cell-obj
+				 callback-make-cell-data
+				 callback-update-cell )
   (let (
-		(obj) 
+		(new-grid-obj)
 		(cell-array (make-array (* w-cell-num h-cell-num)))
 		)
 
+	;;セルの見た目作成コールバックがnilならデフォルト関数をセット
+	(cond 
+	  ((equal callback-make-cell-obj nil)
+		(setq callback-make-cell-obj #'grid-default-callback-make-cell-obj)
+		(setq callback-update-cell #'grid-default-callback-update-cell))
+		)
+
+
+	;;セルを作成
 	(loop for i below (length cell-array) do
-		 (setf (aref cell-array i) 
-			   (new-button 
-				(+ x (* (mod i w-cell-num) cell-w )) ;x
-				(+ y (* (truncate i w-cell-num) cell-h))  ;y
-				cell-w cell-h  ;w,h
-				(format nil "~d" i);str
-;;  				'a ;key
-				(read-from-string (format nil "~d" i)) ;グリッド番号をそのままキーに指定
-				#'push-grid) )
-		 )
-;; )										
+		 (setf (aref cell-array i)
+		 (make-cell 
+		  :x (mod i w-cell-num)
+		  :y (truncate i w-cell-num)
+
+		  ;コールバックを用いてオブジェクトを作成
+		  :obj 
+		  (funcall 
+		   callback-make-cell-obj
+		   x;grid x
+		   y;grid y
+		   (mod i w-cell-num);cell x
+		   (truncate i w-cell-num); cell y
+		   cell-w
+		   cell-h
+		   i
+		   )
+		  :data
+		  (funcall
+		   callback-make-cell-data
+		   )
+		  );make cell
+		 );setf
+		 );loop
+		  
 
 
-	(setq obj 
+	(setq new-grid-obj 
 		  (make-grid :x x :y y 
 					 :w-cell-num w-cell-num :h-cell-num h-cell-num
-					 :array cell-array))
-	
+					 :cell-array cell-array
+					 :callback-update callback-update-cell))
+
 ;; 	(add-object obj)
-	obj)
+	new-grid-obj
+   )
   
+)
+
+;;デフォルトのセルに置くオブジェクトを作成するコールバック
+;;x,y,w,h,indexは、グリッド上のセル座標、セル幅、高さ、セル番号
+(def-f grid-default-callback-make-cell-obj ( grid-x grid-y x y w h index )
+  (new-button 
+   (+ grid-x (* x w));x
+   (+ grid-y (* y h))
+   w h ;w, h
+   (format nil "~d" index);str
+   ;;  				'a ;key
+   (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
+   #'push-grid) 
+)
+
+;;セルの見た目アップデートにつかうデフォルトのコールバック関数
+(def-f grid-default-callback-update-cell (cell)
+  (let ((button (cell-obj cell)))
+	(set-text button "up")
+	)
+)
+
+;;セルの見た目アップデート
+(def-f grid-update (grid)
+  (loop for i below (length (grid-cell-array grid)) do
+	   (let ((cell (aref (grid-cell-array grid) i)))
+		 (funcall (grid-callback-update grid) cell)
+		 );let
+	   );loop
 )
 
 ;;指定のグリッド番号に手をセット
 (def-f grid-set-hand ( grid cell-num hand )
-   (set-text (aref (grid-array grid) cell-num)  hand)
+   (set-text (aref (grid-cell-array grid) cell-num)  hand)
 )
 
 ;;指定のオブジェクトのグリッド上のｘ座標を返す
 (def-f grid-x-cell (grid obj)
-;;   (loop for i below (length (grid-array grid)) do
-;; 	   (if (equal (aref (grid-array grid) i) obj)
-;; 		   (button-x (aref (grid-array grid) i) ) ;t
-;; 		   ;nil
-;; 	   )
-;; 	   )
-
   (let (index)
-	(setq index (position obj (grid-array grid)))
+	(setq index (position obj (grid-cell-array grid)))
 	(mod index (grid-w-cell-num grid))
    )
 
 )
 ;;指定のオブジェクトのグリッド上のｙ座標を返す
 (def-f grid-y-cell (grid obj)
-;;   (loop for i below (length (grid-array grid)) do
-;; 	   (if (equal (aref (grid-array grid) i) obj)
-;; 		   (button-y (aref (grid-array grid) i) ) ;t
-;; 		   ;nil
-;; 	   )
-;; 	   )
 
   (let (index)
-	(setq index (position obj (grid-array grid)))
+	(setq index (position obj (grid-cell-array grid)))
 	(truncate index (grid-w-cell-num grid))  ;y
    )
 
@@ -447,8 +503,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
 (def-f get-empty-cell-array (cell-array)
   (remove-if 
-	 #'(lambda (x) 
-		 (if (or ( equal (button-text x) "o" )  (equal (button-text x) "x"))
+	 #'(lambda (cell) 
+		 (if (or ( equal (button-text (cell-obj cell)) "o" ) 
+				 ( equal (button-text (cell-obj cell)) "x"))
 			 t
 			 nil)
 ;; 		 ) (grid-array grid))
@@ -464,19 +521,44 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-;;指定の位置のグリッドを取得
+;;指定の位置のセルを取得
 ;;範囲外を指定したらnilを返す
 (def-f grid-get-cell (grid x y)
   
   (cond 
+	((< x 0) nil)
+	((< y 0) nil)
 	((>= x (grid-w-cell-num grid)) nil)
 	((>= y (grid-h-cell-num grid)) nil)
-	(t (aref (grid-array grid)
+	(t (aref (grid-cell-array grid)
 		(+
 		 (* y (grid-w-cell-num grid))
 		 x )
 		))
   )
+)
+
+;;指定ブロックの相対位置のセルを返す
+(def-f grid-get-cell-from-block( grid block x y )
+  (let (cell)
+
+	(setq cell (grid-get-cell-from-data grid block) )
+	(grid-get-cell grid (+ (cell-x cell) x) (+ (cell-y cell) y) )
+	)
+)
+
+
+;;指定のデータを持つ最初のセルを取得
+;;存在しなければnilを返す
+(def-f grid-get-cell-from-data (grid data)
+  (loop for i below (length (grid-cell-array grid)) do
+	   (let ((cell (aref (grid-cell-array grid) i)))
+		 (if (equal (cell-data cell) data)
+			 (return cell);t
+			 )
+	   );let
+	   );loop
+
 )
 
 ;; 指定のセルのグリッドのｘ位置を返す
@@ -488,19 +570,19 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 (def-f grid-get-area-cell-array (grid area-x area-y area-w area-h)
   (remove-if #'(lambda(cell) 
 				 (if (or
-						  (<= (+ area-x area-w) (grid-x-cell grid cell)) 
-						  (<= (+ area-y area-h) (grid-y-cell grid cell)) 
-						  (< (grid-x-cell grid cell) area-x)
-						  (< (grid-y-cell grid cell) area-y)
+						  (<= (+ area-x area-w) (cell-x cell)) 
+						  (<= (+ area-y area-h) (cell-y cell)) 
+						  (< (cell-x cell) area-x)
+						  (< (cell-y cell) area-y)
 						  )
 					 t;t
 					 nil);nil
-				 ) (grid-array grid))
+				 ) (grid-cell-array grid))
 )
 
 ;;ランダムに空白のセルを取得
 (def-f grid-random-get-empty (grid )
-  (random-get (get-empty-cell-array (grid-array grid)))
+  (random-get (get-empty-cell-array (grid-cell-array grid)))
 )
 
 ;;作り中
@@ -531,29 +613,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	
 )
 
-;;ランダムに要素を配置。ＤＲＭ用
-;;レベル＊４の要素を配置
-;;ベース・ラインより下にランダム配置する
-;;飽和量が一定を超えると、ベースラインより上にも配置する
-(def-f grid-put-random-drm( grid level base-line-y)
-  (loop for i below (* level 4) do
-	   (let ((empty-cell) (color-no))
-		 (setq empty-cell 
-			   (grid-random-get-empty-area grid 
-										   0
-										   base-line-y 
-										   (grid-w-cell-num grid)
-										   (- (grid-h-cell-num grid) base-line-y)
-										   ))
-		 (setq color-no (random 3))
-		 (cond
-		   ((= color-no 0) (set-text empty-cell "o"))
-		   ((= color-no 1) (set-text empty-cell "x"))
-		   ((= color-no 2) (set-text empty-cell "i"))
-		 )
-	   );let
-	   )
-)
 
 ;;マッチチェック
 ;;マッチのアルゴリズム悩ましい
