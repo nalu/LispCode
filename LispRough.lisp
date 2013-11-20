@@ -1,6 +1,5 @@
 #|
 Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅速にするライブラリ
-絵を書く際のラフのように、素早く、雑だけど全容が把握できるような状態を目指している。
 
 ・画面サイズ
 デフォルトは決定済みだが、ゲームコード側でlr-beginを呼ぶ時に
@@ -10,7 +9,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 (ql:quickload :cl-ppcre);文字列ライブラリ
-(load "c:/Lisp/LispCode/util.lisp")
+(load "./util.lisp")
 
 
 ;--------------------------------- SYSTEM ---------------------------------
@@ -28,8 +27,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-;; (defparameter *object-array* nil)
-;; (defparameter *object-num* 0);配列をやめて、追加ができるリストを採用するのが望ましい
 
 ;;object-arrayを追加できる形式に変更
 (defparameter *object-array* (make-array 0 :fill-pointer t :adjustable t))
@@ -53,11 +50,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 (defun lr-begin ( &optional (screen-w *default-screen-w*) (screen-h *default-screen-h*) ) 
   (setq *quit* 0)
-;;   (setq *object-array* (make-array 100))
   (setq *screen-w* screen-w )
   (setq *screen-h* screen-h)
   (setq *screen-map* (make-array (* *screen-w* *screen-h*)))
-;;   (setq *object-num* 0)
 )
 
 (defun lr-start()
@@ -91,7 +86,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
   (let (obj readkey (push-obj 0))
     (setq readkey (read))
-;;     (loop for i below *object-num* do
 	(loop for i below (length *object-array*) do
    
 	 (setq obj (aref *object-array* i) )
@@ -370,15 +364,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;セル上のオブジェクトに自由にアクセスして使う想定
 ;;セルは位置インデックスを持ち、位置、範囲指定、検索などを容易に行えるようにする
 
-;;ということを予定していたが、ぶっちゃけセル使う時はｘ，ｙにアクセスしたいだけなので、
-;;暫定バージョンとしてはgetX, getYができればいいということになった。
-;;AndroidやiOSを見てもわかるが、グリッドクラスは複雑すぎる上完成度を高めるのは難しい
-
-;;セルを使えば効率的なコードも書けるかもしれないが、
-;;どうせコンバートして使うので今セルを作る意味はない。
-
-;;オブジェクトにボタンではなく、独自のもの（ブロッククラス等）を使用したい
-;;状況になってきたので、セルの上にオブジェクトを乗せるシステムにする
+;;セルの上にオブジェクトを乗せて使う
 ;;グリッド作成時、セルに乗せるアイテムを返すメソッドをセットする事を前提とする
 ;;この関数がnilの場合は、デフォルトのオブジェクト作成関数が使用される
 
@@ -386,7 +372,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;セルの見た目を作る関数とは別に、データ配列を持っておいて、
 ;;セル位置と対応してｘ，ｙの取得、座標指定でのデータ取得など行えるようにする
 ;;セルの見た目を作る関数でもこのデータを利用する事ができる
-;;セルの見た目を更新する際にもこのデータは使えるだろう
+;;セルの見た目を更新する際にもこのデータは使える
 (defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (cell-array nil) (callback-update nil) )
 (defstruct (cell) (x 0) (y 0) (obj nil) (data nil))
 (defun new-grid (x y w-cell-num h-cell-num cell-w cell-h 
