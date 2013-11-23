@@ -388,8 +388,10 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	(cond 
 	  ((equal callback-make-cell-obj nil)
 		(setq callback-make-cell-obj #'grid-default-callback-make-cell-obj)
-		(setq callback-update-cell #'grid-default-callback-update-cell))
-		)
+		(setq callback-update-cell #'grid-default-callback-update-cell)
+	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data)
+	    
+		))
 
 
 	;;セルを作成
@@ -453,6 +455,12 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	)
 )
 
+;;セルのデータを返すコールバック関数
+(def-f grid-default-callback-make-cell-data ()
+;;   (make-block)
+  nil
+)
+
 ;;セルの見た目アップデート
 (def-f grid-update (grid)
   (loop for i below (length (grid-cell-array grid)) do
@@ -460,11 +468,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		 (funcall (grid-callback-update grid) cell)
 		 );let
 	   );loop
-)
-
-;;指定のグリッド番号に手をセット
-(def-f grid-set-hand ( grid cell-num hand )
-   (set-text (aref (grid-cell-array grid) cell-num)  hand)
 )
 
 ;;指定のオブジェクトのグリッド上のｘ座標を返す

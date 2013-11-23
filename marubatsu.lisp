@@ -32,7 +32,10 @@
   
 ;;   (def-v *grid* (new-grid 3 6 3 3))
 
-   (def-v *grid* (new-grid 3 6 3 3 4 4))
+   (def-v *grid* (new-grid 3 6 3 3 4 4 
+						   nil
+						   nil
+						   nil))
 
 );end-variable
 
@@ -81,15 +84,21 @@
     )
 )
 
-
+;;グリッドボタン押下時
 (def-f push-grid (obj)
-  (print (button-text obj))
-   (grid-set-hand *grid* (stoi (button-text obj)) "o")
 
+  (print obj)
+  (set-hand obj "o")
   ;;enemy
    (enemy-hand)
 )
 
+
+;;指定のグリッド番号に手をセット
+(def-f set-hand ( button hand  )
+;;   (set-text (aref (grid-cell-array grid) cell-num)  hand)
+  (set-text button hand)
+)
 
 
 ;;敵の手を決定
@@ -97,23 +106,28 @@
 
   ;;単なるランダム
 
-  (let ((target-grid nil) (empty-cell-array nil) )
-	(setq empty-cell-array (get-empty-cell-array (grid-array *grid*)))
+  (let ((target-cell nil) (empty-cell-array nil) )
+	(setq empty-cell-array (get-empty-cell-array (grid-cell-array *grid*)))
 
 	(cond 
       ;打てる場所が無い
 	  ((= (length empty-cell-array) 0) (print "utenaiyo"))
 	  ;ランダムに配置
 	  ( t
-	   (setq target-grid (aref empty-cell-array (random (length empty-cell-array))))
-	   (print (format nil "computer hand is ~a > x" (button-text target-grid)))
-	   (set-text target-grid "x")
+	   (setq target-cell (aref empty-cell-array (random (length empty-cell-array))))
+	   (print (format nil "computer hand is ~d,~d > x" (cell-x target-cell) (cell-y target-cell) ))
+	   (set-text (cell-obj target-cell) "x")
 	   )
 	  )
-	)
+	);let
+
   )
 
-
+;;勝敗チェック
+(def-f check-win()
+  ;;ここにはGridのシステム内のマッチを使いたい
+  ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
+)
 
 
 (def-f win()

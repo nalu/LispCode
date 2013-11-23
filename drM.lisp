@@ -81,6 +81,11 @@
 	);let
 )
 
+;;グリッドのセルボタン押下時のコールバック
+;;グリッドはボタンの設置タイミングについて仕様変更した方がいい
+(def-f push-grid (obj)
+)
+
 
 ;;ゲージクラス作りたい
 ;; (defstruct gage
@@ -133,13 +138,6 @@
 )
 
 
-(def-f push-grid (obj)
-  (print (button-text obj))
-   ( grid-set-hand *grid* (stoi (button-text obj)) "o")
-
-  ;;enemy
-   (enemy-hand)
-)
 
 
 ;;ランダムに要素を配置。ＤＲＭ用
