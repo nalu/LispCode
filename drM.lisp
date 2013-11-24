@@ -17,8 +17,8 @@
   (def-v *button-fall* (new-button 1 15 7 3 "[A] Left" 'a #'push-left))
   (def-v *button-fall* (new-button 1 18 7 3 "[D] Right" 'd #'push-right))
   (def-v *button-fall* (new-button 1 21 7 3 "[S] Fall" 's #'push-fall))
-  (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]otate[R]" 'rr #'push-rr))
-  (def-v *button-rotate-left* (new-button 1 27 7 3 "[R]otat[L]" 'rl #'push-rl))
+  (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]rotate[R]" 'r #'push-r))
+  (def-v *button-rotate-left* (new-button 1 27 7 3 "[L]rotate[L]" 'l #'push-l))
   
 
   (def-enum 'hand '(goo choki per hand-max))
@@ -35,8 +35,10 @@
   (def-v *flag-fall* nil);落下中フラグ
   (def-v *flag-match-check* nil);マッチチェックフラグ
 
+  ;;操作ブロック
   (def-v *fall-block-left* nil)
   (def-v *fall-block-right* nil)
+  (def-v *fall-block-rotate-index* 0);;回転状態を表す番号。４パターンある
 
   ;;grid用データを作成
    (def-v *grid* (new-grid 10 2 8 18 3 2 
@@ -195,6 +197,9 @@
 		;;落下中ブロックへセット
 		(setq *fall-block-left* *next-block-left*)
 		(setq *fall-block-right* *next-block-right*)
+		
+		;;回転状態をリセット
+		(setq *fall-block-rotate-index* 0)
 
 		;次ブロックを用意
 		(set-next-block)
@@ -433,6 +438,7 @@
 	   );loop
 )
 
+
 ;;Nextボタン。次のターンに進める
 (def-f push-next()
 
@@ -504,6 +510,8 @@
   (grid-update *grid*)
 )
 
+
+
 (def-f push-right()
 
   (cond 
@@ -519,8 +527,6 @@
 )
 
 (def-f push-left()
-  
-
   (cond 
 	((check-cell-empty-from-block *fall-block-left* -1 0);左セルのチェック
 	 (move-block *fall-block-left* -1 0)
@@ -532,12 +538,53 @@
   (grid-update *grid*)
 )
 
-(def-f push-rl()
+(def-f push-r()
+  (print "rotateR")
+  (rotate-block-right)
 )
 
-(def-f push-rr()
+(def-f push-l()
+  (print "rotateL")
+  (rotate-block-left)
 )
 
+
+;;回転処理
+;;回転方向はＡの時計回りとＢの反時計回り。
+;;どちらもブロックの座標は２パターンで、右に倒れるか、タテに戻るか。
+;;右に倒れた際、右側にブロックや壁が存在する場合はブロック自身が左にずれる。
+;;左にずれるスペースがない場合は、回転が無効になる
+;;タテに戻る場合は、上側に障害物がある場合、回転が無効になる
+;;回転が成功した場合のみ、回転状態を表すrotate-indexを変更する
+(def-f rotate-block-left ()
+  (let (next-index)
+	(setq next-index (- next-index 1))
+	(if (< next-index 0) (setq next-index 3))
+	(set-rotate next-index)
+	);let
+)
+(def-f rotate-block-right ()
+  (let (next-index)
+	(setq next-index (+ next-index 1))
+	(if (>= next-index 3) (setq next-index 0))
+	(set-rotate next-index)
+	);let
+)
+(def-f set-rotate ( rotate-index )
+  
+  ;;縦状態か横状態かで挙動変える
+  (cond
+	;縦
+	( (or (= rotate-index 0) (= rotate-index 2))
+	 (print "tate")
+	  ;;元が横向きのはずなので、右側のブロックを上に移動
+	  
+		  )
+	;横
+	( (or (= rotate-index 1) (= rotate-index 3))
+	 (print "horiz")
+	))
+)
 
 ;; (def-f win()
 ;;   (setq *money* (+ *money* 10))
