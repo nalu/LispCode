@@ -7,16 +7,18 @@
   (def-v *message-label* (new-label 26 2 13 3 "message"))
   (def-v *button-quit* (new-button 28 30 5 3 "[Q]uit" 'q #'push-quit))
   (def-v *label-level* (new-label 1 6 7 3 "level"))
+  (def-v *label-score* (new-label 1 9 7 3 "Score:"))
 
   (def-v *level* 20)
+  (def-v *score* 0)
   (def-v *hp-gage* 10)
   (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
   
 
-  (def-v *button-next* (new-button 1 12 7 3 "[N]ext" 'n #'push-next))  
-  (def-v *button-fall* (new-button 1 15 7 3 "[A] Left" 'a #'push-left))
-  (def-v *button-fall* (new-button 1 18 7 3 "[D] Right" 'd #'push-right))
-  (def-v *button-fall* (new-button 1 21 7 3 "[S] Fall" 's #'push-fall))
+  (def-v *button-next* (new-button 1 13 7 3 "[N]ext" 'n #'push-next))  
+  (def-v *button-fall* (new-button 1 16 7 3 "[A] Left" 'a #'push-left))
+  (def-v *button-fall* (new-button 1 19 7 3 "[D] Right" 'd #'push-right))
+  (def-v *button-fall* (new-button 1 22 7 3 "[S] Fall" 's #'push-fall))
   (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]rotate[R]" 'r #'push-r))
   (def-v *button-rotate-left* (new-button 1 27 7 3 "[L]rotate[L]" 'l #'push-l))
   
@@ -134,6 +136,14 @@
     )
 )
 
+(def-f update-score()
+  (let (str)
+    (setq str (format nil "Score:~d" *score*))
+    (set-text *label-score* str)
+    )
+  
+)
+
 (def-f update-next-block()
   (set-text *label-next-block-left* (block-color *next-block-left*))
   (set-text *label-next-block-right* (block-color *next-block-right*))
@@ -148,7 +158,7 @@
 ;;飽和量が一定を超えると、ベースラインより上にも配置する
 (def-f grid-put-random-drm( grid level base-line-y)
   (loop for i below (* level 4) do
-	   (let ((empty-cell) (color-no) (put-block) )
+	   (let ((empty-cell) (put-block) )
 		 (setq empty-cell 
 			   (grid-random-get-empty-area grid 
 										   0
@@ -156,30 +166,36 @@
 										   (grid-w-cell-num grid)
 										   (- (grid-h-cell-num grid) base-line-y)
 										   ))
-		 (setq put-block (make-block :type "virus" ))
+		 (setq put-block (make-block :color (make-random-color) :type "virus" ))
 		 (setf (cell-data empty-cell) put-block)
-		 (setq color-no (random 3))
-		 (cond
-		   ((= color-no 0) (setf (block-color (cell-data empty-cell)) "o"))
-		   ((= color-no 1) (setf (block-color (cell-data empty-cell)) "x"))
-		   ((= color-no 2) (setf (block-color (cell-data empty-cell)) "i"))
-		 )
 	   );let
 	   )
 )
 
 
+;;ランダムでカラーを作成
+(def-f make-random-color()
+  (let (color-no color)
+    (setq color-no (random 3))
+    (cond
+      ((= color-no 0) (setq color "o"))
+      ((= color-no 1) (setq color "x"))
+      ((= color-no 2) (setq color "i"))
+      )
+    color
+  );let color
+)
 ;;次のブロックを用意
 (def-f set-next-block()
   (setq *next-block-left* 
 		(make-block 
-		 :color "o"
+		 :color (make-random-color)
 		 :type "drag"
 		 :connect "right"
 		 ))
   (setq *next-block-right* 
 		(make-block 
-		 :color "x"
+		 :color (make-random-color)
 		 :type "drag"
 		 :connect "left"
 		 ))  
@@ -381,11 +397,11 @@
   ;;前回のセルとマッチしているかチェック
   ;;マッチしていなければ値を返す
   (if (not (equal before-block nil))
-	  (if (equal (block-color block) (block-color before-block))
-		  (setq match-count (+ match-count 1) );t
-		  (setq recursive-finish t);nil
-		  );if check match color
-	  );if check left block
+      (if (equal (block-color block) (block-color before-block))
+	  (setq match-count (+ match-count 1) );t
+	  (setq recursive-finish t);nil
+	  );if check match color
+      );if check left block
 
   ;;次のセルへ再帰使う
   (if (equal recursive-finish nil)
@@ -419,6 +435,26 @@
 
 )
 
+;;マッチフラグの立っているブロックのリストを取得
+(def-f get-matched-block-list(grid)
+
+  (let (block-list)
+    (setq block-list (map 'list (lambda(cell) (cell-data cell)) (grid-cell-array grid)))
+    (setq block-list (remove nil block-list))
+    (setq block-list (remove-if (lambda(block) (equal (block-matched block) nil)) block-list))
+    block-list
+    )
+
+)
+
+;;マッチフラグの立っているブロックリストからスコアを算出
+(def-f get-score(grid)
+  (* 100
+  (length 
+   (get-matched-block-list grid)
+))
+)
+
 ;;マッチフラグの立っているブロックを全て削除
 (def-f delete-matched-block()
   (loop for i below (length (grid-cell-array *grid*)) do
@@ -428,9 +464,6 @@
 		 (if (and
 			  (not (equal block nil));ブロック存在チェック
 			  (equal (block-matched block) t));マッチフラグチェック
-;; 			 (setq block nil)
-;;  			 (setf (block-color block) "A")
-;;  			 (setf block nil)
 			 (setf (cell-data (aref (grid-cell-array *grid*) i)) nil)
 			 );if
 
@@ -438,38 +471,38 @@
 	   );loop
 )
 
-
-;;Nextボタン。次のターンに進める
-(def-f push-next()
-
-  
-
-  ;;ブロックが無い場合はまず配置
+(def-f next-turn()
+   ;;              
   (cond
 
-	;;ブロック設置
+	;;      
 	((equal *flag-block-put* t)
 	 (put-next-block)
 	 (setq *flag-block-put* nil)
 	 (setq *flag-fall* t))
 
-	;;落下
+	;;  
 	((equal *flag-fall* t)
-	 (fall-controll-block)
 	 
-	 ;;着地チェック
+	 ;;      
 	 (cond 
 	   ((check-fall-stop-controll-block)
 		(setq *flag-fall* nil)
 		(setq *flag-match-check* t)
 		)
+	   ;            
+	   (t
+	    (fall-controll-block)
+	    )
 	   );cond
 
 	 )
 	
-	;;マッチチェック
+	;;       
 	((equal *flag-match-check* t)
 	 (check-match)
+	 (setq *score* (+ (get-score *grid*) *score*))
+	 (update-score)
 	 (delete-matched-block);
 	 (setq *flag-block-put* t)
 	 )
@@ -478,9 +511,14 @@
 
   
 
-  ;;画面更新
+  ;;    
   (grid-update *grid*)
 
+)
+
+;;Nextボタン。次のターンに進める
+(def-f push-next()
+  (next-turn)
 )
 
 ;;操作中ブロックを落下させる
@@ -505,8 +543,8 @@
 		   (return);nil
 		   );if
 	   );loop
-  
-  (setq *flag-fall* nil);t
+
+  (next-turn)
   (grid-update *grid*)
 )
 
