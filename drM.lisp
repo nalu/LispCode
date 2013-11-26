@@ -4,7 +4,7 @@
 
 (defun game-variable()
 
-  (def-v *message-label* (new-label 26 2 13 3 "message"))
+  (def-v *message-label* (new-label 34 2 7 3 "message"))
   (def-v *button-quit* (new-button 28 30 5 3 "[Q]uit" 'q #'push-quit))
   (def-v *label-level* (new-label 1 6 7 3 "level"))
   (def-v *label-score* (new-label 1 9 7 3 "Score:"))
@@ -19,18 +19,18 @@
   (def-v *button-fall* (new-button 1 16 7 3 "[A] Left" 'a #'push-left))
   (def-v *button-fall* (new-button 1 19 7 3 "[D] Right" 'd #'push-right))
   (def-v *button-fall* (new-button 1 22 7 3 "[S] Fall" 's #'push-fall))
-  (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]rotate[R]" 'r #'push-r))
-  (def-v *button-rotate-left* (new-button 1 27 7 3 "[L]rotate[L]" 'l #'push-l))
+  (def-v *button-rotate-right* (new-button 1 25 7 3 "[R]rotate" 'r #'push-r))
+  (def-v *button-rotate-left* (new-button 1 28 7 3 "[L]rotate" 'l #'push-l))
   
 
   (def-enum 'hand '(goo choki per hand-max))
   (def-v *player-hand* goo)
   (def-v *enemy-hand* goo)
-  (def-v *label-next-block-left* (new-label 34 9 4 3 ""))
-  (def-v *label-next-block-right* (new-label 38 9 4 3 ""))
+  (def-v *label-next-block-a* (new-label 34 9 4 3 ""))
+  (def-v *label-next-block-b* (new-label 38 9 4 3 ""))
 
-  (def-v *next-block-left* nil)
-  (def-v *next-block-right* nil)
+  (def-v *next-block-a* nil)
+  (def-v *next-block-b* nil)
 
   ;;ゲーム状態遷移
   (def-v *flag-block-put* nil);ブロックの設置フラグ
@@ -38,8 +38,8 @@
   (def-v *flag-match-check* nil);マッチチェックフラグ
 
   ;;操作ブロック
-  (def-v *fall-block-left* nil)
-  (def-v *fall-block-right* nil)
+  (def-v *fall-block-a* nil)
+  (def-v *fall-block-b* nil)
   (def-v *fall-block-rotate-index* 0);;回転状態を表す番号。４パターンある
 
   ;;grid用データを作成
@@ -57,7 +57,7 @@
 
 ;;セルのデータに設定するブロッククラス
 ;;タイプはdrag,virusのどちらか、connectは接続方向、matchedはマッチチェック用
-(defstruct (block) (color nil) (type nil) (connect nil) (matched nil)  )
+(defstruct (block) (color nil) (type nil) (connect nil) (direction nil) (matched nil)  )
 
 ;;セルのデータを返すコールバック関数
 (def-f callback-make-cell-data ()
@@ -77,12 +77,47 @@
 
 ;;セルのアップデート関数
 (def-f callback-update-cell (cell)
-  (let ((block (cell-data cell)))
-	(if (not (eql block nil))
-		(set-text (cell-obj cell) (block-color block));t
-		(set-text (cell-obj cell) " ");nil
-		);if
-	);let
+  ;; (let ((block (cell-data cell)))
+  ;; 	(if (not (eql block nil))
+  ;; 		(set-text (cell-obj cell) (block-color block) );t
+  ;; 		(set-text (cell-obj cell) " ");nil
+  ;; 		);if
+  ;; 	);let
+  (let ((block (cell-data cell)) (cell-str) )
+
+    ;;状態に応じてセルの見た目を決定
+    (cond
+      ;;ブロックが無い場合
+      ((eql block nil)
+       (setq cell-str " "))
+
+      ;;ブロックがウィルスの場合
+      ((equal (block-type block) "virus")
+       (setq cell-str (block-color block) ))
+
+      ;;ブロックがドラッグでコネクションしている場合
+      ( (and (equal (block-type block) "drug") (equal (block-connect block) t))
+       (if (= (block-direction block) 0) 
+	   (setq cell-str (format nil "(~a" (block-color block))));右
+       (if (= (block-direction block) 2) 
+	   (setq cell-str (format nil "~a)" (block-color block))));左
+       (if (= (block-direction block) 1) 
+	   (setq cell-str (format nil "^~a" (block-color block))));下
+       (if (= (block-direction block) 3) 
+	   (setq cell-str (format nil "u~a" (block-color block))));上
+       )
+
+      ;;ブロックがドラッグでコネクションが無い場合
+      ( (and (equal (block-type block) "drug") (equal (block-connect block) nil))
+      	   (setq cell-str (format nil "~a." (block-color block)))
+       )
+
+
+      );cond
+
+    (set-text (cell-obj cell) cell-str)
+
+    );let
 )
 
 ;;グリッドのセルボタン押下時のコールバック
@@ -145,8 +180,8 @@
 )
 
 (def-f update-next-block()
-  (set-text *label-next-block-left* (block-color *next-block-left*))
-  (set-text *label-next-block-right* (block-color *next-block-right*))
+  (set-text *label-next-block-a* (block-color *next-block-a*))
+  (set-text *label-next-block-b* (block-color *next-block-b*))
 )
 
 
@@ -187,17 +222,19 @@
 )
 ;;次のブロックを用意
 (def-f set-next-block()
-  (setq *next-block-left* 
+  (setq *next-block-a* 
 		(make-block 
 		 :color (make-random-color)
-		 :type "drag"
-		 :connect "right"
+		 :type "drug"
+		 :connect t
+		 :direction 0
 		 ))
-  (setq *next-block-right* 
+  (setq *next-block-b* 
 		(make-block 
 		 :color (make-random-color)
-		 :type "drag"
-		 :connect "left"
+		 :type "drug"
+		 :connect t
+		 :direction 2
 		 ))  
 )
 
@@ -205,14 +242,14 @@
 (def-f put-next-block()
   (let ((left-cell (grid-get-cell *grid* 3 0))
 		(right-cell (grid-get-cell *grid* 4 0)))
-	
-		(setf (cell-data left-cell) *next-block-left*)
-		(setf (cell-data right-cell) *next-block-right*)
+
+		(setf (cell-data left-cell) *next-block-a*)
+		(setf (cell-data right-cell) *next-block-b*)
 		(grid-update *grid*)
 
 		;;落下中ブロックへセット
-		(setq *fall-block-left* *next-block-left*)
-		(setq *fall-block-right* *next-block-right*)
+		(setq *fall-block-a* *next-block-a*)
+		(setq *fall-block-b* *next-block-b*)
 		
 		;;回転状態をリセット
 		(setq *fall-block-rotate-index* 0)
@@ -222,21 +259,33 @@
 	);let
 )
 
-;;落下
-(def-f move-block (block move-x move-y)
-  (let ((cell (grid-get-cell-from-data *grid* block)  ) 
-		(target-cell nil ))
-	;;セル上を移動
+;;ブロックの位置を移動
+;;複数移動可能
+(def-f move-block (block-list move-x move-y)
 
-	;;移動先のセルを取得して、データをセット
-	(setq target-cell 
-		  (grid-get-cell *grid* (+ (cell-x cell) move-x) (+ (cell-y cell) move-y)))
-	
- 	(setf (cell-data target-cell) block)
+  (loop for i below (length block-list) do
 
-	;;移動前の位置を削除
-	(setf (cell-data cell) nil)
-	 )
+     ;;元の位置から削除
+       (let (cell)
+	 (setq cell (grid-get-cell-from-data *grid* (elt block-list i)))
+	 (print cell)
+	 (setf (cell-data cell) nil)
+	 );let
+       );loop
+  (print "delete end")
+  (loop for i below (length block-list) do
+       (let (cell target-cell block)
+	 (setq block (elt block-list i))
+	 (print block)
+	 (setq cell (grid-get-cell-from-data *grid* block) ) 
+	 (print cell)
+	 ;;移動先のセルを取得して、データをセット
+	 (setq target-cell 
+	       (grid-get-cell *grid* (+ (cell-x cell) move-x) (+ (cell-y cell) move-y)))
+	 
+	 (setf (cell-data target-cell) block)
+	 
+  	 ))
 )
 
 ;;着地チェック
@@ -302,15 +351,28 @@
 ;;空いていたらt、ブロックや壁がある場合nilを返す
 ;;指定のセル上のブロックが操作中のブロックだったら無視する
 (def-f check-cell-empty (cell)
-	(if (and
-		 (not (equal cell nil));セルが存在
-		 (equal (cell-data cell) nil);セルがブロックを持っている
-		 (not (equal (cell-data cell) *fall-block-left*));操作中ブロックでない
-		 (not (equal (cell-data cell) *fall-block-right*));操作中ブロックでない
-		 )
-		t;t
-		nil; nil
-		);if
+
+  
+	;; (if (and
+	;; 	 (not (equal cell nil));セルが存在
+	;; 	 (equal (cell-data cell) nil);セルがブロックを持っている
+	;; 	 (not (equal (cell-data cell) *fall-block-a*));操作中ブロックでない
+	;; 	 (not (equal (cell-data cell) *fall-block-b*));操作中ブロックでない
+	;; 	 )
+	;; 	t;t
+	;; 	nil; nil
+	;; 	);if
+
+  (if (or
+       (equal (cell-data cell) nil)
+       (and 
+	(not (equal (cell-data cell) nil));
+	(not (equal (cell-data cell) *fall-block-a*));          
+	(not (equal (cell-data cell) *fall-block-b*));
+	))
+      nil;t
+      t; nil
+      );if
 )
 
 
@@ -523,14 +585,16 @@
 
 ;;操作中ブロックを落下させる
 (def-f fall-controll-block()
-  (move-block *fall-block-left* 0 1 )
-  (move-block *fall-block-right* 0 1)
+  ;; (move-block *fall-block-a* 0 1 )
+  ;; (move-block *fall-block-b* 0 1)
+
+  (move-block '(*fall-block-a* *fall-block-b*) 0 1)
 )
 ;;操作中ブロックの着地チェック
 (def-f check-fall-stop-controll-block()
    (or
-	   (equal t (check-fall-stop *fall-block-left*))
-	   (equal t (check-fall-stop *fall-block-right*)))
+	   (equal t (check-fall-stop *fall-block-a*))
+	   (equal t (check-fall-stop *fall-block-b*)))
 )
 
 ;;着地するまで落下
@@ -553,9 +617,10 @@
 (def-f push-right()
 
   (cond 
-	((check-cell-empty-from-block *fall-block-right* 1 0);右セルのチェック
-	 (move-block *fall-block-right* 1 0)
-	 (move-block *fall-block-left* 1 0)
+	((check-cell-empty-from-block *fall-block-b* 1 0);右セルのチェック
+	 ;; (move-block *fall-block-b* 1 0)
+	 ;; (move-block *fall-block-a* 1 0)
+	 (move-block '(*fall-block-a* *fall-block-b*) 1 0)
 	);move
 	(t
 	 (print "don"));wall
@@ -566,9 +631,10 @@
 
 (def-f push-left()
   (cond 
-	((check-cell-empty-from-block *fall-block-left* -1 0);左セルのチェック
-	 (move-block *fall-block-left* -1 0)
-	 (move-block *fall-block-right* -1 0)
+	((check-cell-empty-from-block *fall-block-a* -1 0);左セルのチェック
+	 ;; (move-block *fall-block-a* -1 0)
+	 ;; (move-block *fall-block-b* -1 0)
+	 (move-block '(*fall-block-a* *fall-block-b*) -1 0)
 	);move
 	(t
 	 (print "don"));wall
@@ -579,11 +645,13 @@
 (def-f push-r()
   (print "rotateR")
   (rotate-block-right)
+  (grid-update *grid*)
 )
 
 (def-f push-l()
   (print "rotateL")
   (rotate-block-left)
+  (grid-update *grid*)
 )
 
 
@@ -596,34 +664,145 @@
 ;;回転が成功した場合のみ、回転状態を表すrotate-indexを変更する
 (def-f rotate-block-left ()
   (let (next-index)
-	(setq next-index (- next-index 1))
+	(setq next-index (- *fall-block-rotate-index* 1))
 	(if (< next-index 0) (setq next-index 3))
 	(set-rotate next-index)
 	);let
 )
 (def-f rotate-block-right ()
   (let (next-index)
-	(setq next-index (+ next-index 1))
-	(if (>= next-index 3) (setq next-index 0))
+	(setq next-index (+ *fall-block-rotate-index* 1))
+	(if (>= next-index 4) (setq next-index 0))
 	(set-rotate next-index)
 	);let
 )
+
+;;回転番号から、a,bブロックをそれぞれ正しい位置にセットする
+;;位置は操作ブロックの基本セルを取得して、そこを基準にして判断する
 (def-f set-rotate ( rotate-index )
-  
-  ;;縦状態か横状態かで挙動変える
-  (cond
-	;縦
-	( (or (= rotate-index 0) (= rotate-index 2))
-	 (print "tate")
-	  ;;元が横向きのはずなので、右側のブロックを上に移動
-	  
-		  )
-	;横
-	( (or (= rotate-index 1) (= rotate-index 3))
-	 (print "horiz")
-	))
+  (print rotate-index)
+  (let (base-cell rotate-target-cell-a rotate-target-cell-b enable-rotate) 
+    (setq base-cell (get-base-controll-cell))
+
+    ;;回転先を取得
+    (setq rotate-target-cell-a (get-rotate-target-cell-a rotate-index))
+    (setq rotate-target-cell-b (get-rotate-target-cell-b rotate-index))
+
+    ;;回転が可能かチェック
+    (if (and
+	 (equal (check-cell-empty rotate-target-cell-a) t)
+	 (equal (check-cell-empty rotate-target-cell-b) t))
+	(setq enable-rotate t)
+	)
+
+    (print rotate-target-cell-a)
+    (print rotate-target-cell-b)
+
+    ;;縦から横にする時に障害物がある（右が埋まっている）場合は、左に移動
+    ;;横向き左移動した場合にも障害物がある場合、回転は失敗とする
+    ;;横から縦にする時に障害物がある（上が埋まっている）場合は、なにもせずそのまま回転失敗とする
+    (cond 
+      ( (and (or (= rotate-index 0) (= rotate-index 2)) (equal enable-rotate nil))
+	(setq rotate-target-cell-a 
+	      (grid-get-cell-from-cell rotate-target-cell-a *grid* -1 0))
+	(setq rotate-target-cell-b 
+	      (grid-get-cell-from-cell rotate-target-cell-b *grid* -1 0))
+
+       ;;障害物が無いかチェック
+       (if (and
+	    (equal (check-cell-empty rotate-target-cell-a) t)
+	    (equal (check-cell-empty rotate-target-cell-b) t))
+	   (setq enable-rotate t);t
+	   (setq enable-rotate nil);nil
+	   )
+        
+       )
+      );cond
+
+
+
+    (cond (enable-rotate
+
+        ;元の位置から削除
+	(setf (cell-data (grid-get-cell-from-block *grid* *fall-block-a* 0 0)  )nil)
+	(setf (cell-data (grid-get-cell-from-block *grid* *fall-block-b* 0 0)  )nil)
+        ;回転先にセット
+	(setf (cell-data rotate-target-cell-a) *fall-block-a*)
+	(setf (cell-data rotate-target-cell-b) *fall-block-b*)
+
+
+        ;;回転番号に応じてabブロックのdirectionをセット
+	(cond
+	  ((= rotate-index 0)
+	   (setf (block-direction *fall-block-a*) 0)
+	   (setf (block-direction *fall-block-b*) 2))
+	  ((= rotate-index 1)
+	   (setf (block-direction *fall-block-a*) 1)
+	   (setf (block-direction *fall-block-b*) 3))
+	  ((= rotate-index 2)
+	   (setf (block-direction *fall-block-a*) 2)
+	   (setf (block-direction *fall-block-b*) 0))
+	  ((= rotate-index 3)
+	   (setf (block-direction *fall-block-a*) 3)
+	   (setf (block-direction *fall-block-b*) 1))
+	  )
+
+        ;回転成功したら回転番号をセット
+	(setq *fall-block-rotate-index* rotate-index)
+	));cond
+
+    enable-rotate
+
+    );let
+
+
 )
 
+;;操作ブロックの基本セルから、aブロックの指定の回転位置のセルを返す
+(def-f get-rotate-target-cell-a (rotate-index)
+  (let (base-cell)
+    (setq base-cell (get-base-controll-cell))
+    (cond
+      ((= rotate-index 0)( grid-get-cell-from-cell *grid* base-cell 0 0 ))
+      ((= rotate-index 1)( grid-get-cell-from-cell *grid* base-cell 0 -1 ))
+      ((= rotate-index 2)( grid-get-cell-from-cell *grid* base-cell 1 0 ))
+      ((= rotate-index 3)( grid-get-cell-from-cell *grid* base-cell 0 0 ))
+      );cond
+
+    )
+)
+
+;;操作ブロックの基本セルから、bブロックの指定の回転位置のセルを返す
+(def-f get-rotate-target-cell-b (rotate-index)
+  (let (base-cell)
+    (setq base-cell (get-base-controll-cell))
+    (cond
+      ((= rotate-index 0)( grid-get-cell-from-cell *grid* base-cell 1 0 ))
+      ((= rotate-index 1)( grid-get-cell-from-cell *grid* base-cell 0 0 ))
+      ((= rotate-index 2)( grid-get-cell-from-cell *grid* base-cell 0 0 ))
+      ((= rotate-index 3)( grid-get-cell-from-cell *grid* base-cell 0 -1 ))
+      );cond
+
+    )
+)
+
+
+;;aブロックと回転状態から、操作ブロックの基本セル（aブロックが回転０の時の位置）を返す
+(def-f get-base-controll-cell()
+  (let (base-cell-x base-cell-y)
+    (cond 
+      ((= *fall-block-rotate-index* 0) (setq base-cell-x 0) (setq base-cell-y 0))
+      ((= *fall-block-rotate-index* 1) (setq base-cell-x 0) (setq base-cell-y 1))
+      ((= *fall-block-rotate-index* 2) (setq base-cell-x -1) (setq base-cell-y 0))
+      ((= *fall-block-rotate-index* 3) (setq base-cell-x 0) (setq base-cell-y 0))
+     
+     );cond
+    
+    ;;相対位置から基本セルを取得
+    (grid-get-cell-from-block *grid* *fall-block-a* base-cell-x base-cell-y)
+
+    );let
+)
 ;; (def-f win()
 ;;   (setq *money* (+ *money* 10))
 ;;   (update-money)

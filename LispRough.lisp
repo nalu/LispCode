@@ -527,6 +527,11 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   )
 )
 
+;;指定セルの相対位置のセルを返す
+(def-f grid-get-cell-from-cell ( grid cell x y )
+  (grid-get-cell grid (+ (cell-x cell) x) (+ (cell-y cell) y) )
+)
+
 ;;指定ブロックの相対位置のセルを返す
 (def-f grid-get-cell-from-block( grid block x y )
   (let (cell)
