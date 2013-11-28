@@ -4,42 +4,47 @@
 
 (defun game-variable()
 
+  (def-v *label-total-number* (new-label 13 2 13 3 "TOTAL NO:"))
   (def-v *message-label* (new-label 26 2 13 3 "message"))
+  (def-v *label-next-break* (new-label 13 5 26 3 "Next Break No"))
+
+
   (def-v *button-quit* (new-button 28 30 5 3 "[Q]uit" 'q #'push-quit))
-  (def-v *label-level* (new-label 1 6 7 3 "level"))
 
-  (def-v *level* 20)
-  (def-v *hp-gage* 10)
-  (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
+  (def-v *label-turn* (new-label 1 2 10 3 "TURN:"))
+  (def-v *label-time* (new-label 1 5 10 3 "TIME:"))
+  (def-v *label-nolma* (new-label 1 8 10 3 "NOLMA:"))
+
+
+  (def-v *label-core-sphia* (new-label 21 8 10 3 "CORE:"))
+
+;;   (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
   
 
-  (def-v *button-next* (new-button 1 12 7 3 "[N]ext" 'n #'push-next))  
-  (def-v *button-fall* (new-button 1 15 7 3 "[A] Left" 'a #'push-left))
-  (def-v *button-fall* (new-button 1 18 7 3 "[D] Right" 'd #'push-right))
-  (def-v *button-fall* (new-button 1 21 7 3 "[S] Fall" 's #'push-fall))
-  (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]otate[R]" 'rr #'push-rr))
-  (def-v *button-rotate-left* (new-button 1 27 7 3 "[R]otat[L]" 'rl #'push-rl))
+;;   (def-v *button-next* (new-button 1 12 7 3 "[N]ext" 'n #'push-next))  
+;;   (def-v *button-fall* (new-button 1 15 7 3 "[A] Left" 'a #'push-left))
+;;   (def-v *button-fall* (new-button 1 18 7 3 "[D] Right" 'd #'push-right))
+;;   (def-v *button-fall* (new-button 1 21 7 3 "[S] Fall" 's #'push-fall))
+;;   (def-v *button-rotate-right* (new-button 1 24 7 3 "[R]otate[R]" 'rr #'push-rr))
+;;   (def-v *button-rotate-left* (new-button 1 27 7 3 "[R]otat[L]" 'rl #'push-rl))
   
 
-  (def-enum 'hand '(goo choki per hand-max))
-  (def-v *player-hand* goo)
-  (def-v *enemy-hand* goo)
-  (def-v *label-next-block-left* (new-label 34 9 4 3 ""))
-  (def-v *label-next-block-right* (new-label 38 9 4 3 ""))
+  ;;変数
+  (def-v *core-number* 0)
+  (def-v *select-coin-array* (make-array 0 :fill-pointer t :adjustable t))
 
-  (def-v *next-block-left* nil)
-  (def-v *next-block-right* nil)
+  
 
   ;;ゲーム状態遷移
-  (def-v *flag-block-put* nil);ブロックの設置フラグ
-  (def-v *flag-fall* nil);落下中フラグ
-  (def-v *flag-match-check* nil);マッチチェックフラグ
+;;   (def-v *flag-block-put* nil);ブロックの設置フラグ
+;;   (def-v *flag-fall* nil);落下中フラグ
+;;   (def-v *flag-match-check* nil);マッチチェックフラグ
 
-  (def-v *fall-block-left* nil)
-  (def-v *fall-block-right* nil)
+;;   (def-v *fall-block-left* nil)
+;;   (def-v *fall-block-right* nil)
 
   ;;grid用データを作成
-   (def-v *grid* (new-grid 10 2 4 4 3 2 
+   (def-v *grid* (new-grid 14 12 4 4 6 4 
 						   #'callback-make-cell-obj 
 						   #'callback-make-cell-data 
 						   #'callback-update-cell
@@ -47,13 +52,13 @@
 	 );def-v
 
    ;;マッチチェック
-   (def-v *match-require-num* 3);３つで消える
+;;    (def-v *match-require-num* 3);３つで消える
    
 );end-variable
 
 ;;セルのデータに設定するブロッククラス
 ;;タイプはdrag,virusのどちらか、connectは接続方向、matchedはマッチチェック用
-(defstruct (block) (color nil) (type nil) (connect nil) (matched nil)  )
+(defstruct (coin) (number 0) (color nil) (type nil) (checked nil)  )
 
 ;;セルのデータを返すコールバック関数
 (def-f callback-make-cell-data ()
@@ -63,32 +68,38 @@
 
 ;;セルの見た目を表すオブジェクト作成関数
 (def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
-  (new-label
+;;   (new-label
+;;    (+ grid-x (* x w));x
+;;    (+ grid-y (* y h));y
+;;    w h ;w, h
+;;    (format nil " ");str
+;;    )
+
+  (new-button
    (+ grid-x (* x w));x
    (+ grid-y (* y h));y
    w h ;w, h
-   (format nil " ");str
+   (format nil "~d " index);str
+   (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
+   #'push-grid
    )
+
 )
 
 ;;セルのアップデート関数
 (def-f callback-update-cell (cell)
-  (let ((block (cell-data cell)))
-	(if (not (eql block nil))
-		(set-text (cell-obj cell) (block-color block));t
-		(set-text (cell-obj cell) " ");nil
+
+  (let (coin button str)
+	(setq coin (cell-data cell))
+	(setq button (cell-obj cell))
+	;;チェック済みとそうでない場合で見た目を変える
+	(if (equal (coin-checked coin) t)
+		(setq str (format nil "[~d] <~d>" (button-key button) (coin-number coin)));t
+		(setq str (format nil "[~d] ~d" (button-key button) (coin-number coin)));t
 		);if
+	(set-text button str)
 	);let
 )
-
-
-;;ゲージクラス作りたい
-;; (defstruct gage
-;;   (value 0)
-;;   (max-value 0)
-
-
-
 
 (defun game-start()
 
@@ -101,15 +112,9 @@
 (def-f game-init()
 
   ;グリッド配列をボタンで初期化
-  (update-level)
+;;   (update-level)
 ;;   (grid-put-random *grid* 50)
-  (grid-put-random-sphia *grid* *level*)
-  (set-next-block)
-
-  (update-next-block)
-  (grid-update *grid*)
-
-  (setq *flag-block-put* t);ブロックの設置フェイズから開始
+  (next-turn)
 )
 
 
@@ -120,67 +125,46 @@
 )
 
 ;画面更新
-(def-f update-level()
-  (let (str)
-    (setq str (format nil "level:~d" *level*))
-    (set-text *label-level* str)
-    )
-)
-
-(def-f update-next-block()
-  (set-text *label-next-block-left* (block-color *next-block-left*))
-  (set-text *label-next-block-right* (block-color *next-block-right*))
+(def-f update-core-number()
+  (setf (label-text *label-core-sphia*) (format nil "CORE: < ~d >" *core-number*))
 )
 
 
-(def-f push-grid (obj)
-  (print (button-text obj))
-   ( grid-set-hand *grid* (stoi (button-text obj)) "o")
-
-  ;;enemy
-   (enemy-hand)
+(def-f push-grid (button)
+  (let (cell data)
+	(setq cell (aref (grid-cell-array *grid*) (eval (button-key button))))
+	(setq data (cell-data cell))
+	(print data)
+	
+	)
 )
 
+
+(def-f next-turn()
+  (grid-put-random-sphia *grid*)
+  (set-next-core-number)
+  (update-core-number)
+  (grid-update *grid*)
+)
 
 ;;ランダムに要素を配置。Sphia用
 ;;レベルの動作は未定
-(def-f grid-put-random-sphia( grid level)
-  ;; (loop for i below (* level 4) do
-  ;; 	   (let ((empty-cell) (color-no) (put-block) )
-  ;; 		 (setq empty-cell 
-  ;; 			   (grid-random-get-empty-area grid 
-  ;; 										   0
-  ;; 										   base-line-y 
-  ;; 										   (grid-w-cell-num grid)
-  ;; 										   (- (grid-h-cell-num grid) base-line-y)
-  ;; 										   ))
-  ;; 		 (setq put-block (make-block :type "virus" ))
-  ;; 		 (setf (cell-data empty-cell) put-block)
-  ;; 		 (setq color-no (random 3))
-  ;; 		 (cond
-  ;; 		   ((= color-no 0) (setf (block-color (cell-data empty-cell)) "o"))
-  ;; 		   ((= color-no 1) (setf (block-color (cell-data empty-cell)) "x"))
-  ;; 		   ((= color-no 2) (setf (block-color (cell-data empty-cell)) "i"))
-  ;; 		 )
-  ;; 	   );let
-  ;; 	   )
+(def-f grid-put-random-sphia( grid)
+  (loop for i below (length (grid-cell-array grid) ) do
+  	   (let (cell)
+
+		 (setq cell (aref (grid-cell-array grid) i))
+		 (setf (cell-data cell ) (make-coin :number (+ 1 (random 5))))
+  	   );let
+  	   )
 )
 
 
-;;次のブロックを用意
-(def-f set-next-block()
-  (setq *next-block-left* 
-		(make-block 
-		 :color "o"
-		 :type "drag"
-		 :connect "right"
-		 ))
-  (setq *next-block-right* 
-		(make-block 
-		 :color "x"
-		 :type "drag"
-		 :connect "left"
-		 ))  
+
+
+;;新しいコアナンバーをセット
+(def-f set-next-core-number()
+  (setq *core-number* (random 20) )
 )
 
 ;;次のブロックをグリッドに配置

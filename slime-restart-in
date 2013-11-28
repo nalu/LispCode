@@ -1,0 +1,807 @@
+; SLIME 2013-04-02
+CL-USER> (load "c:/Lisp/LispCode/sphia.lisp")
+To load "cl-ppcre":
+  Load 1 ASDF system:
+    cl-ppcre
+; Loading "cl-ppcre"
+
+To load "alexandria":
+  Load 1 ASDF system:
+    alexandria
+; Loading "alexandria"
+
+;Compiler warnings for "c:/Lisp/LispCode/LispRough.lisp" :
+;   In GRID-GET-CELL-RIGHT: Unused lexical variable TARGET-CELL
+;Compiler warnings for "c:/Lisp/LispCode/LispRough.lisp" :
+;   In GRID-GET-CELL-RIGHT: Unused lexical variable GRID
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In GAME-INIT: Undeclared free variable *GRID* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In UPDATE-CORE-NUMBER: Undeclared free variable *LABEL-CORE-SPHIA*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In UPDATE-CORE-NUMBER: Undeclared free variable *CORE-NUMBER*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In SET-NEXT-CORE-NUMBER: Undeclared free variable *CORE-NUMBER*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUT-NEXT-BLOCK: Undeclared free variable *GRID* (3 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-LEFT* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-RIGHT* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In MOVE-BLOCK: Undeclared free variable *GRID* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In GET-BOTTOM-BLOCK: Undeclared free variable *GRID* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-CELL-EMPTY-FROM-BLOCK: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-LEFT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In GET-DRUG-BLOCK-LIST: Unused lexical variable GRID
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In ENEMY-HAND: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-MATCH: Undeclared free variable *GRID* (3 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-MATCH-R: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-MATCH-R: Undeclared free variable *MATCH-REQUIRE-NUM*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In DELETE-MATCHED-BLOCK: Undeclared free variable *GRID* (3 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL* (3 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-NEXT: Undeclared free variable *FLAG-MATCH-CHECK* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT* (3 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-NEXT: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-FALL: Undeclared free variable *FLAG-FALL*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-FALL: Undeclared free variable *GRID* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-RIGHT* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-LEFT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-RIGHT: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-LEFT* (2 references)
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-LEFT: Undeclared free variable *GRID*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In DELETE-MATCHED-BLOCK: Undefined function BLOCK-MATCHED
+;   In CHECK-MATCH-R: Undefined function (SETF BLOCK-MATCHED)
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In PUT-NEXT-BLOCK: Undefined function SET-NEXT-BLOCK
+#P"c:/Lisp/LispCode/sphia.lisp"
+CL-USER> (game-start)
+
+0 
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+9 
+10 
+11 
+12 
+q13 
+14 
+15 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 7 >      |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 2        || 1        || 2        || 1        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 1        || 4        || 4        || 1        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 1        || 3        || 1        || 5        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 4        || 5        || 2        || 1        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+q
+NIL
+CL-USER> (game-start)
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 14 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 2        || 3        || 2        || 4        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 4        || 3        || 1        || 2        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 1        || 1        || 1        || 5        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 3        || 2        || 2        || 5        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT 2 :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID #xCCC783E> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 14 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 2        || 3        || 2        || 4        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 4        || 3        || 1        || 2        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 1        || 1        || 1        || 5        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | 3        || 2        || 2        || 5        |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+q
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+NIL
+CL-USER> (game-start)
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 6 >      |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 2    || [1] 3    || [2] 1    || [3] 1    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 3    || [6] 1    || [7] 2    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 2    || [10] 4   || [11] 3   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 1   || [14] 4   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT "[0] 2" :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID #xCCC783E> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 6 >      |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 2    || [1] 3    || [2] 1    || [3] 1    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 3    || [6] 1    || [7] 2    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 2    || [10] 4   || [11] 3   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 1   || [14] 4   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT "[0] 2" :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID #xCCC783E> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 6 >      |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 2    || [1] 3    || [2] 1    || [3] 1    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 3    || [6] 1    || [7] 2    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 2    || [10] 4   || [11] 3   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 1   || [14] 4   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+q
+ (COIN) [Defstruct]
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    COPY-COIN
+    COIN-P
+    Toplevel Forms...
+    COIN-NUMBER
+    (SETF COIN-NUMBER)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-COLOR
+    (SETF COIN-COLOR)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-TYPE
+    (SETF COIN-TYPE)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-CHECKED
+    (SETF COIN-CHECKED)
+    Toplevel Forms...
+    Toplevel Forms...
+    MAKE-COIN
+    Toplevel Forms...
+    Toplevel Forms...
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+Invoking restart: Return to SLIME's top level.
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+ (COIN) [Defstruct]
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    COPY-COIN
+    COIN-P
+    Toplevel Forms...
+    COIN-NUMBER
+    (SETF COIN-NUMBER)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-COLOR
+    (SETF COIN-COLOR)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-TYPE
+    (SETF COIN-TYPE)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-CHECKED
+    (SETF COIN-CHECKED)
+    Toplevel Forms...
+    Toplevel Forms...
+    MAKE-COIN
+    Toplevel Forms...
+    Toplevel Forms...
+;Compiling "c:/Lisp/LispCode/sphia.lisp"...
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-GRID: Unused lexical variable OBJ
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-RIGHT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-RIGHT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In GET-DRUG-BLOCK-LIST: Unused lexical variable GRID
+;   In CHECK-MATCH-R: Undeclared free variable *MATCH-REQUIRE-NUM*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-MATCH-CHECK*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-MATCH-CHECK*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-FALL: Undeclared free variable *FLAG-FALL*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In DELETE-MATCHED-BLOCK: Undefined function BLOCK-MATCHED
+;   In CHECK-MATCH-R: Undefined function (SETF BLOCK-MATCHED)
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In PUT-NEXT-BLOCK: Undefined function SET-NEXT-BLOCK
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+NIL
+CL-USER> (game-start)
+Invoking restart: Return to SLIME's top level.
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+;Compiling "c:/Lisp/LispCode/sphia.lisp"...
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In PUSH-GRID: Unused lexical variable OBJ
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-RIGHT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *NEXT-BLOCK-RIGHT*
+;   In PUT-NEXT-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In CHECK-CELL-EMPTY: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In GET-DRUG-BLOCK-LIST: Unused lexical variable GRID
+;   In CHECK-MATCH-R: Undeclared free variable *MATCH-REQUIRE-NUM*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-FALL*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-MATCH-CHECK*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-MATCH-CHECK*
+;   In PUSH-NEXT: Undeclared free variable *FLAG-BLOCK-PUT*
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In FALL-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In CHECK-FALL-STOP-CONTROLL-BLOCK: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-FALL: Undeclared free variable *FLAG-FALL*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;   In PUSH-RIGHT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-LEFT*
+;   In PUSH-LEFT: Undeclared free variable *FALL-BLOCK-RIGHT*
+;Compiler warnings for "c:/Lisp/LispCode/sphia.lisp" :
+;   In DELETE-MATCHED-BLOCK: Undefined function BLOCK-MATCHED
+;   In CHECK-MATCH-R: Undefined function (SETF BLOCK-MATCHED)
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In CHECK-MATCH-R: Undefined function BLOCK-COLOR
+;   In PUT-NEXT-BLOCK: Undefined function SET-NEXT-BLOCK
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+; Evaluation aborted on #<CCL::UNDEFINED-FUNCTION-CALL #xCD0A84E>.
+CL-USER> (game-start)
+Invoking restart: Return to SLIME's top level.
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In CALLBACK-UPDATE-CELL: Undefined function CHECKED-COIN
+ (COIN) [Defstruct]
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...  (Compiletime)
+    Toplevel Forms...
+    COPY-COIN
+    COIN-P
+    Toplevel Forms...
+    COIN-NUMBER
+    (SETF COIN-NUMBER)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-COLOR
+    (SETF COIN-COLOR)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-TYPE
+    (SETF COIN-TYPE)
+    Toplevel Forms...
+    Toplevel Forms...
+    Toplevel Forms...
+    COIN-CHECKED
+    (SETF COIN-CHECKED)
+    Toplevel Forms...
+    Toplevel Forms...
+    MAKE-COIN
+    Toplevel Forms...
+    Toplevel Forms...
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+; Evaluation aborted on #<CCL::UNDEFINED-FUNCTION-CALL #xCD57826>.
+CL-USER> (game-start)
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 15 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 4    || [1] 2    || [2] 1    || [3] 5    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 2    || [6] 1    || [7] 4    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 1    || [10] 1   || [11] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 5   || [14] 2   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+ Toplevel Forms...
+ CALLBACK-UPDATE-CELL
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT "[0] 4" :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID #xCC509C6> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 15 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 4    || [1] 2    || [2] 1    || [3] 5    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 2    || [6] 1    || [7] 4    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 1    || [10] 1   || [11] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 5   || [14] 2   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+ Toplevel Forms...
+ PUSH-GRID
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT "[0] 4" :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID (Non-Global)  #xCC509C6> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 15 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 4    || [1] 2    || [2] 1    || [3] 5    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 2    || [6] 1    || [7] 4    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 1    || [10] 1   || [11] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 5   || [14] 2   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+0
+
+#S(BUTTON :X 14 :Y 12 :W 6 :H 4 :TEXT "[0] 4" :VISIBLE T :KEY 0 :CALL #<Compiled-function PUSH-GRID (Non-Global)  #xCC509C6> :ENABLE T) 
+| -------------------------------------------------------------------------------- |
+|                                                                                  |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | TURN:            |    | TOTAL NO:              || message                |     |
+| | ---------------- |    | ---------------------- || ---------------------- |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | TIME:            |    | Next Break No                                    |     |
+| | ---------------- |    | ------------------------------------------------ |     |
+| | ---------------- |                    | ---------------- |                     |
+| | NOLMA:           |                    | CORE: < 15 >     |                     |
+| | ---------------- |                    | ---------------- |                     |
+|                                                                                  |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [0] 4    || [1] 2    || [2] 1    || [3] 5    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [4] 1    || [5] 2    || [6] 1    || [7] 4    |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [8] 4    || [9] 1    || [10] 1   || [11] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                           | [12] 1   || [13] 5   || [14] 2   || [15] 2   |       |
+|                           |          ||          ||          ||          |       |
+|                           | -------- || -------- || -------- || -------- |       |
+|                                                                                  |
+|                                                                                  |
+|                                                       | ------ |                 |
+|                                                       | [Q]uit |                 |
+|                                                       | ------ |                 |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+|                                                                                  |
+| -------------------------------------------------------------------------------- |
+ Toplevel Forms...
+ PUSH-GRID
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In PUSH-GRID: Unused lexical variable OBJ
+ Toplevel Forms...
+ PUSH-GRID
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In PUSH-GRID: Unused lexical variable OBJ
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In PUSH-GRID: Undefined function COBJ
+ Toplevel Forms...
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In an anonymous lambda form at position 3167: Undeclared free variable DATA
+Invoking restart: Load other file instead of "C:/Users/USER/AppData/Local/Temp/ccl45A7.wx32fsl"
+File name: 
+ Toplevel Forms...
+ PUSH-GRID
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In PUSH-GRID: Undeclared free variable DATA
+;   In PUSH-GRID: Unused lexical variable OBJ
+ Toplevel Forms...
+ PUSH-GRID
+;Compiler warnings for "c:\\Lisp\\LispCode\\sphia.lisp" :
+;   In PUSH-GRID: Unused lexical variable OBJ
+q
+NIL
+CL-USER> (game-start)
+"(game-start)" does not exist.
+File name: n
+
+"n" does not exist.
+File name:q
+
+"q" does not exist.
+File name: 

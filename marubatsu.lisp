@@ -127,8 +127,16 @@
 (def-f check-win()
   ;;ここにはGridのシステム内のマッチを使いたい
   ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
+  
 )
 
+;;グリッドのマッチチェックに登録する判定関数
+
+(def-f match-check-o(block)
+  (if (equal (block-text block) "o")
+	  t
+	  nil)
+)
 
 (def-f win()
   (setq *money* (+ *money* 10))
