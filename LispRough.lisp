@@ -27,7 +27,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-
 ;;object-arrayを追加できる形式に変更
 (defparameter *object-array* (make-array 0 :fill-pointer t :adjustable t))
 (defun object-add (object)
