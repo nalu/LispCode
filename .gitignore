@@ -221,3 +221,6 @@ pip-log.txt
 *.tem
 Karas/
 emacs.exe*
+*.dx64fsl
+
+*.dx64fsl
