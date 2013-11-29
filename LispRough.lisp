@@ -573,6 +573,11 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 				 ) (grid-cell-array grid))
 )
 
+;;全セルの持つデータを配列にして返す。nilも含む
+(def-f grid-get-data-array (grid)
+  (map 'list (lambda(x) (cell-data x)) (grid-cell-array grid))
+)
+
 ;;ランダムに空白のセルを取得
 (def-f grid-random-get-empty (grid )
   (random-get (get-empty-cell-array (grid-cell-array grid)))

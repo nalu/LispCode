@@ -36,6 +36,7 @@
   (def-v *flag-block-put* nil);ブロックの設置フラグ
   (def-v *flag-fall* nil);落下中フラグ
   (def-v *flag-match-check* nil);マッチチェックフラグ
+  (def-v *flag-auto-fall* nil);自動落下フラグ
 
   ;;操作ブロック
   (def-v *fall-block-a* nil)
@@ -77,12 +78,6 @@
 
 ;;セルのアップデート関数
 (def-f callback-update-cell (cell)
-  ;; (let ((block (cell-data cell)))
-  ;; 	(if (not (eql block nil))
-  ;; 		(set-text (cell-obj cell) (block-color block) );t
-  ;; 		(set-text (cell-obj cell) " ");nil
-  ;; 		);if
-  ;; 	);let
   (let ((block (cell-data cell)) (cell-str) )
 
     ;;状態に応じてセルの見た目を決定
@@ -196,11 +191,11 @@
 	   (let ((empty-cell) (put-block) )
 		 (setq empty-cell 
 			   (grid-random-get-empty-area grid 
-										   0
-										   base-line-y 
-										   (grid-w-cell-num grid)
-										   (- (grid-h-cell-num grid) base-line-y)
-										   ))
+						       0
+						       base-line-y 
+						       (grid-w-cell-num grid)
+						       (- (grid-h-cell-num grid) base-line-y)
+						       ))
 		 (setq put-block (make-block :color (make-random-color) :type "virus" ))
 		 (setf (cell-data empty-cell) put-block)
 	   );let
@@ -262,7 +257,6 @@
 ;;ブロックの位置を移動
 ;;複数移動可能
 (def-f move-block (block-list move-x move-y)
-  (print block-list)
 
   (let (target-cell-array)
     (setq target-cell-array (make-array (length block-list)))
@@ -270,11 +264,7 @@
     (loop for i below (length block-list) do
        ;;元の位置から削除
 	 (let (cell)
-	   (print i)
-	   (print (elt block-list i))
-	   (print (grid-get-cell-from-data *grid* (elt block-list i)))
 	   (setq cell (grid-get-cell-from-data *grid* (elt block-list i)))
-	   (print cell)
 
 	   ;;移動先リストに追加
 	   (setf (aref target-cell-array i) 
@@ -285,19 +275,12 @@
 	   (setf (cell-data cell) nil)
 	   );let
 	 );loop
-    (print "end delete")
 
     (loop for i below (length block-list) do
 	 (let (cell target-cell block)
 	   (setq block (elt block-list i))
-	   (print block)
-	   ;; (setq cell (grid-get-cell-from-data *grid* block) ) ;;この辞典で元の位置から消えてる
 	   (setq target-cell (aref target-cell-array i))
-	   (print cell)
 	   ;;移動先のセルを取得して、データをセット
-	   ;; (setq target-cell 
-	   ;; 	 (grid-get-cell *grid* (+ (cell-x cell) move-x) (+ (cell-y cell) move-y)))
-	   
 	   (setf (cell-data target-cell) block)
 	   
 	   ))
@@ -368,16 +351,6 @@
 ;;空いていたらt、ブロックや壁がある場合nilを返す
 ;;指定のセル上のブロックが操作中のブロックだったら無視する
 (def-f check-cell-empty (cell)
-  (print cell)
-	;; (if (and
-	;; 	 (not (equal cell nil));セルが存在
-	;; 	 (equal (cell-data cell) nil);セルがブロックを持っている
-	;; 	 (not (equal (cell-data cell) *fall-block-a*));操作中ブロックでない
-	;; 	 (not (equal (cell-data cell) *fall-block-b*));操作中ブロックでない
-	;; 	 )
-	;; 	t;t
-	;; 	nil; nil
-	;; 	);if
 
   (if (not (equal cell nil))
       
@@ -405,7 +378,8 @@
 
 ;;ドラッグタイプのブロックが配置されたセルのリストを返す
 (def-f get-drug-block-list (grid)
-;;   (map 'list (lambda (x) (print t)) (grid-cell-array grid))
+  (map 'list (lambda (x) (print t)) (grid-cell-array grid))
+  
 )
 
 ;;敵の手を決定
@@ -446,10 +420,7 @@
 			  (setq block (cell-data (grid-get-cell *grid* x y)))
 			  (cond
 				(
-;; 				 (and
 				  (not (equal block nil))
-;; 				  (not (equal (block-matched block) t))
-;; 				  )
 				;t
 				  (check-match-r-horizontal block);t
 				  (check-match-r-vertical block);t
@@ -463,6 +434,7 @@
 	   );loop y
 
 )
+
 
 ;;自分の右側のブロックに潜っていく再帰関数
 (def-f check-match-r-horizontal (block)
@@ -502,8 +474,7 @@
 		 )
 
 		(setq match-count
-		 (check-match-r (cell-data next-cell) block match-count move-x move-y)
-		 )
+		 (check-match-r (cell-data next-cell) block match-count move-x move-y))
 		 );if
 
 	;;戻ってきたmatch-countでマッチ数をチェック
@@ -574,10 +545,14 @@
 	 ;;着地チェック
 	 (cond
 	   ((check-fall-stop-controll-block)
+	    ;;着地時処理
 	    (setq *flag-fall* nil)
 	    (setq *flag-match-check* t)
+	    (setq *fall-block-a* nil)
+	    (setq *fall-block-b* nil)
 	    )
 	   (t
+	    ;;着地していなければ落下
 	    (fall-controll-block)
 	    )
 	   );cond
@@ -587,11 +562,43 @@
 	;;マッチチェック
 	((equal *flag-match-check* t)
 	 (check-match)
+	   ;マッチしていれば次のものを取得
 	 (setq *score* (+ (get-score *grid*) *score*))
 	 (update-score)
-	 (delete-matched-block);
-	 (setq *flag-block-put* t)
+
+	 (print (get-matched-block-list *grid*))
+
+	 ;;マッチしていなければ次のブロックへ
+	 ;;マッチがあれば削除して自動落下フェーズへ
+	 (cond 
+	   (
+	    (< 0 (length (get-matched-block-list *grid*)))
+	    (delete-matched-block);
+	    (setq *flag-auto-fall* t)
+	    (setq *flag-match-check* nil)
+	    );
+	   (t
+	    (setq *flag-block-put* t)
+	    )
+	   );cond match count check
+	 );cond *flag-match-check*
+	 
+
+
+	;;自動落下
+	((equal *flag-auto-fall* t)
+	 (print "fallauto")
+	 (let (fall-count)
+	   (setq fall-count (fall-block-all))
+	   (cond ((= fall-count 0)
+	       ;;着地していればマッチチェックフェーズへ
+		  (setq *flag-match-check* t)
+		  (setq *flag-auto-fall* nil)
+	       ));cond fall-count
+	   );let
 	 )
+
+       
 	);cond
 
 
@@ -609,8 +616,6 @@
 
 ;;操作中ブロックを落下させる
 (def-f fall-controll-block()
-  ;; (move-block *fall-block-a* 0 1 )
-  ;; (move-block *fall-block-b* 0 1 )
   (move-block (list *fall-block-a* *fall-block-b*) 0 1)
 )
 ;;操作中ブロックの着地チェック
@@ -618,6 +623,33 @@
    (or
     (equal t (check-fall-stop *fall-block-a*))
     (equal t (check-fall-stop *fall-block-b*)))
+)
+
+;;全ブロックの着地チェック
+(def-f check-fall-stop-all-block()
+  (let (block-list)
+    (setq block-list (grid-get-data-array *grid*))
+    (loop for i below (length block-list) do
+
+	 ;;コネクション未対応
+	 (print i)
+	 
+    	 );loop
+    );let
+)
+
+;;全ドラッグタイプブロックの落下
+;;落下できた数を返す
+(def-f fall-block-all()
+  (let (block-list)
+    (setq block-list (grid-get-data-array *grid*))
+    (setq block-list (remove nil block-list))
+    (setq block-list (remove-if (lambda(x) (equal (block-type x) "virus")) block-list))
+    (setq block-list (remove-if (lambda(x) (equal (check-fall-stop x) t )) block-list))
+    (print block-list)
+    (move-block block-list 0 1)
+    (length block-list)
+    )
 )
 
 ;;着地するまで落下
@@ -753,11 +785,6 @@
         
        )
       );cond
-
-    (print "enable")
-    (print rotate-target-cell-a)
-    (print rotate-target-cell-b)
-    (print enable-rotate)
 
     (cond (enable-rotate
 
