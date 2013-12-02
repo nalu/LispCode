@@ -92,3 +92,22 @@
   (aref array (random (length array)))
 )
 
+;;Vec
+;;vectorを簡単定義
+;;近年のプログラミングスタイルになるべく近づける仕様にしたい
+(defmacro new-vec ()
+;;   `(defparameter ,name (make-array 0 :fill-pointer t :adjustable t))
+  (make-array 0 :fill-pointer t :adjustable t)
+)
+;;vectorに追加
+(defun vec-push ( vec value )
+  (vector-push-extend value vec)
+)
+;;取得
+(defun vec-get ( vec index )
+  (elt vec index)
+)
+;;セット
+(defun vec-set ( vec index value )
+  (setf (elt vec index) value )
+)

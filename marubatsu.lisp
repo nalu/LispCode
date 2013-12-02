@@ -33,24 +33,69 @@
 ;;   (def-v *grid* (new-grid 3 6 3 3))
 
    (def-v *grid* (new-grid 3 6 3 3 4 4 
-						   nil
-						   nil
-						   nil))
-
+						   #'callback-make-cell-obj 
+						   #'callback-make-cell-data 
+						   #'callback-update-cell
+						   'g
+						   #'callback-push-cell
+						   ))
 );end-variable
 
 
-;;ゲージクラス作りたい
-;; (defstruct gage
-;;   (value 0)
-;;   (max-value 0)
+;;セルのデータに設定するブロッククラス
+;;タイプはdrag,virusのどちらか、connectは接続方向、matchedはマッチチェック用
+(defstruct (block) (token nil)  )
 
+;;セルのデータを返すコールバック関数
+(def-f callback-make-cell-data (index cell)
+  (make-block :token nil )
+)
 
+;;セルの見た目を表すオブジェクト作成関数
+;; (def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
+;;   (new-button 
+;;    (+ grid-x (* x w));x
+;;    (+ grid-y (* y h))
+;;    w h ;w, h
+;;    (format nil "~d" index);str
+;;    ;;  				'a ;key
+;; ;;    (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
+;;    nil
+;;    #'push-grid) 
+;; )
 
-;; (defun draw-label ( obj )
-;;   (draw-square obj)
-;;   (map-set-str (+ (square-x obj) 1) (+ (square-y obj) 1) (label-text obj))
+(def-f callback-make-cell-obj ( x y w h index )
 
+  (new-label
+   x y
+   w h ;w, h
+   (format nil "a~d" index);str
+   )
+)
+
+;;セルのアップデート関数
+(def-f callback-update-cell (cell)
+  (let (obj block)
+	(setq obj (cell-obj cell))
+	(setq block (cell-data cell))
+	(if (block-token block)
+		(setf (label-text obj) (block-token block))
+		(setf (label-text obj) " "))
+	)
+)
+
+;;セル押下時メソッド
+(def-f callback-push-cell (cell)
+  (let (block)
+	(setq block (cell-data cell))
+	(set-hand block "o")
+	(grid-update *grid*)
+	;;enemy
+ 	(enemy-hand)
+
+   );let
+  
+)
 
 (defun game-start()
 
@@ -95,9 +140,9 @@
 
 
 ;;指定のグリッド番号に手をセット
-(def-f set-hand ( button hand  )
-;;   (set-text (aref (grid-cell-array grid) cell-num)  hand)
-  (set-text button hand)
+(def-f set-hand ( block hand  )
+  (setf (block-token block) "o")
+  
 )
 
 
@@ -127,7 +172,8 @@
 (def-f check-win()
   ;;ここにはGridのシステム内のマッチを使いたい
   ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
-  
+  (grid-check-match *grid* 3 t t t 
+					(lambda(data) (print (button-text data))))
 )
 
 ;;グリッドのマッチチェックに登録する判定関数
@@ -153,7 +199,4 @@
   (update-money)
   (set-text *message-label*  "PIKO >>>>>> LOSE")
 )
-
-
- 
 

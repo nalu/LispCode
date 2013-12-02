@@ -258,7 +258,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 ;Button
-(defstruct (button (:include label)) (key) (call) (enable t) )
+(defstruct (button (:include label)) (key) (call) (enable t)　(tag nil) )
 (defun draw-button ( obj )
   (draw-label obj)
 )
@@ -372,96 +372,188 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;セル位置と対応してｘ，ｙの取得、座標指定でのデータ取得など行えるようにする
 ;;セルの見た目を作る関数でもこのデータを利用する事ができる
 ;;セルの見た目を更新する際にもこのデータは使える
-(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (cell-array nil) (callback-update nil) )
-(defstruct (cell) (x 0) (y 0) (obj nil) (data nil))
+
+;;グリッドはマッチチェック用にmatchd-listを持ち
+
+;;セルのオブジェクトはデフォルトでボタンを持つ形式に変更
+;;クリック機能を持つ事が前提で、ユーザーはＯＦＦにもできる
+;;グリッドの初期値に与えたキーとインデックスの組み合わせで押すことができるようにする
+;;デフォルトのオブジェクトの考え方は無く、
+(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (cell-array nil) (callback-update nil) (callback-push-cell nil))
+(defstruct (cell) (x 0) (y 0) (obj nil) (data nil) (button nil))
 (defun new-grid (x y w-cell-num h-cell-num cell-w cell-h 
 				 callback-make-cell-obj
 				 callback-make-cell-data
-				 callback-update-cell )
+				 callback-update-cell
+				 key
+				 callback-push-cell
+				 )
   (let (
 		(new-grid-obj)
 		(cell-array (make-array (* w-cell-num h-cell-num)))
 		)
 
 	;;セルの見た目作成コールバックがnilならデフォルト関数をセット
-	(cond 
-	  ((equal callback-make-cell-obj nil)
-		(setq callback-make-cell-obj #'grid-default-callback-make-cell-obj)
-		(setq callback-update-cell #'grid-default-callback-update-cell)
-	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data)
+;; 	(cond 
+;; 	  ((equal callback-make-cell-obj nil)
+;; 		(setq callback-make-cell-obj #'grid-default-callback-make-cell-obj)
+;; 		(setq callback-update-cell #'grid-default-callback-update-cell)
+;; 	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data)
 	    
-		))
+;; 		))
+
+	(if (not callback-update-cell)
+		(setq callback-update-cell #'grid-default-callback-update-cell))
+
+	(if (not callback-make-cell-data)
+	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data))
 
 
 	;;セルを作成
 	(loop for i below (length cell-array) do
-		 (setf (aref cell-array i)
-		 (make-cell 
-		  :x (mod i w-cell-num)
-		  :y (truncate i w-cell-num)
+		 (let (cell button cell-x cell-y cell-obj-x cell-obj-y)
+		   (setq cell-x (mod i w-cell-num))
+		   (setq cell-y (truncate i w-cell-num))
+		   (setq cell-obj-x (+ x (* cell-x cell-w)))
+		   (setq cell-obj-y (+ y (* cell-y cell-h)))
+		   (setq cell
+				 (make-cell 
+				  :x cell-x
+				  :y cell-y
+				  
+										;コールバックを用いてオブジェクトを作成
+;; 				  :obj 
+;; 				  (funcall 
+;; 				   #'grid-default-callback-make-cell-obj
+;; 				   x;grid x
+;; 				   y;grid y
+;; 				   (mod i w-cell-num);cell x
+;; 				   (truncate i w-cell-num); cell y
+;; 				   cell-w
+;; 				   cell-h
+;; 				   i
+;; 				   callback-make-cell-obj
+;; 				   )
 
-		  ;コールバックを用いてオブジェクトを作成
-		  :obj 
-		  (funcall 
-		   callback-make-cell-obj
-		   x;grid x
-		   y;grid y
-		   (mod i w-cell-num);cell x
-		   (truncate i w-cell-num); cell y
-		   cell-w
-		   cell-h
-		   i
-		   )
-		  :data
-		  (funcall
-		   callback-make-cell-data
-		   )
-		  );make cell
-		 );setf
+;; 				  :data
+;; 				  (funcall
+;; 				   callback-make-cell-data
+;; 				   )
+				  );make cell
+				 );setq
+
+
+		   ;;セルのボタンを作成
+		   (setq button
+				  (funcall 
+				   #'grid-default-callback-make-cell-obj
+				   cell-obj-x
+				   cell-obj-y
+				   cell-w
+				   cell-h
+				   i
+				   callback-make-cell-obj
+				   )
+				 )
+		   (setf (cell-button cell) button)
+
+		   ;;セルのオブジェクトを作成
+		   (cond (callback-make-cell-obj 
+				  (setf (cell-obj cell)
+						(funcall callback-make-cell-obj
+								 cell-obj-x
+								 cell-obj-y
+								 cell-w
+								 cell-h
+								 i)
+						)
+			   ));cond
+
+
+
+		   ;;セルの初期化データを作成
+		   (setf (cell-data cell) 
+				 (funcall callback-make-cell-data i cell))
+
+		   
+		   
+		 (setf (aref cell-array i) cell)
+			   );let
+
 		 );loop
 		  
-
+	
 
 	(setq new-grid-obj 
 		  (make-grid :x x :y y 
 					 :w-cell-num w-cell-num :h-cell-num h-cell-num
 					 :cell-array cell-array
-					 :callback-update callback-update-cell))
+					 :callback-update callback-update-cell
+					 :callback-push-cell callback-push-cell))
 
 ;; 	(add-object obj)
+	(object-add new-grid-obj)
+
 	new-grid-obj
    )
   
 )
 
-;;デフォルトのセルに置くオブジェクトを作成するコールバック
+;;セルに置くオブジェクトを作成するコールバック。
+;;この関数は必ず実行され、オプションでユーザーが初期化時にオブジェクト作成関数を
+;;セットすることもできる。
+;;セル専用のボタンを作成し、ボタンのタグにはセルを持たせる
 ;;x,y,w,h,indexは、グリッド上のセル座標、セル幅、高さ、セル番号
-(def-f grid-default-callback-make-cell-obj ( grid-x grid-y x y w h index )
+;; (defun grid-default-callback-make-cell-obj ( grid-x grid-y cell x y w h index 
+;; 											custom-make-cell-obj-callback )
+;;   (let (button)
+
+;; 	(setq button 
+;; 		  (new-button 
+;; 		   (+ grid-x (* x w));x
+;; 		   (+ grid-y (* y h))
+;; 		   w h ;w, h
+;; 		   (format nil "~d" index);str
+;; 		   ;;  				'a ;key
+;; 		   (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
+;; 		   #'grid-push-cell) 
+;; 		  );setq
+		  
+
+
+;; 	);let
+
+;; )
+
+(defun grid-default-callback-make-cell-obj ( x y w h index 
+											custom-make-cell-obj-callback )
+
   (new-button 
-   (+ grid-x (* x w));x
-   (+ grid-y (* y h))
+   x y
    w h ;w, h
    (format nil "~d" index);str
    ;;  				'a ;key
    (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
-   #'push-grid) 
+   #'grid-push-cell) 
 )
 
+
+
 ;;セルの見た目アップデートにつかうデフォルトのコールバック関数
-(def-f grid-default-callback-update-cell (cell)
+(defun grid-default-callback-update-cell (cell)
   (let ((button (cell-obj cell)))
 	(set-text button "up")
 	)
 )
 
 ;;セルのデータを返すコールバック関数
-(def-f grid-default-callback-make-cell-data ()
+(defun grid-default-callback-make-cell-data ()
 ;;   (make-block)
   nil
 )
 
 ;;セルの見た目アップデート
-(def-f grid-update (grid)
+(defun grid-update (grid)
   (loop for i below (length (grid-cell-array grid)) do
 	   (let ((cell (aref (grid-cell-array grid) i)))
 		 (funcall (grid-callback-update grid) cell)
@@ -469,8 +561,34 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	   );loop
 )
 
+;;セル押下時のメソッド
+(defun grid-push-cell(cell-button)
+  ;;   キーからセル場所を判定
+  (print (button-key cell-button))
+  (let (obj grid cell)
+
+  ;;全オブジェクトからグリッドを検索
+	(loop for i below (length *object-array*) do
+		 (setq obj (aref *object-array* i))
+		 (cond ( (equal (type-of obj) 'grid)
+				(setq cell (grid-get-cell-from-button obj cell-button))
+				 (cond ( cell
+					 (setq grid obj)
+					 (return)
+					 ));cell cond
+				 )); grid cond
+		 );loop
+	
+  ;;ユーザー設定のセル押下時コールバック関数に、セルを渡す
+	(print cell)
+	(funcall (grid-callback-push-cell grid) cell)
+
+  );let
+
+)
+
 ;;指定のオブジェクトのグリッド上のｘ座標を返す
-(def-f grid-x-cell (grid obj)
+(defun grid-x-cell (grid obj)
   (let (index)
 	(setq index (position obj (grid-cell-array grid)))
 	(mod index (grid-w-cell-num grid))
@@ -478,7 +596,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 )
 ;;指定のオブジェクトのグリッド上のｙ座標を返す
-(def-f grid-y-cell (grid obj)
+(defun grid-y-cell (grid obj)
 
   (let (index)
 	(setq index (position obj (grid-cell-array grid)))
@@ -489,7 +607,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 ;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
-(def-f get-empty-cell-array (cell-array)
+(defun get-empty-cell-array (cell-array)
   (remove-if 
 	 #'(lambda (cell) 
 		 (if (or ( equal (button-text (cell-obj cell)) "o" ) 
@@ -503,15 +621,15 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 ;;グリッドの状態から勝敗判定
-(def-f jadge-win()
+;; (defun jadge-win()
   
-)
+;; )
 
 
 
 ;;指定の位置のセルを取得
 ;;範囲外を指定したらnilを返す
-(def-f grid-get-cell (grid x y)
+(defun grid-get-cell (grid x y)
   
   (cond 
 	((< x 0) nil)
@@ -527,12 +645,12 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 ;;指定セルの相対位置のセルを返す
-(def-f grid-get-cell-from-cell ( grid cell x y )
+(defun grid-get-cell-from-cell ( grid cell x y )
   (grid-get-cell grid (+ (cell-x cell) x) (+ (cell-y cell) y) )
 )
 
 ;;指定ブロックの相対位置のセルを返す
-(def-f grid-get-cell-from-block( grid block x y )
+(defun grid-get-cell-from-block( grid block x y )
   (let (cell)
 
 	(setq cell (grid-get-cell-from-data grid block) )
@@ -543,10 +661,22 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 ;;指定のデータを持つ最初のセルを取得
 ;;存在しなければnilを返す
-(def-f grid-get-cell-from-data (grid data)
+(defun grid-get-cell-from-data (grid data)
   (loop for i below (length (grid-cell-array grid)) do
 	   (let ((cell (aref (grid-cell-array grid) i)))
 		 (if (equal (cell-data cell) data)
+			 (return cell);t
+			 )
+	   );let
+	   );loop
+
+)
+
+;;指定のボタンオブジェクトを持つセルを取得
+(defun grid-get-cell-from-button (grid button)
+  (loop for i below (length (grid-cell-array grid)) do
+	   (let ((cell (aref (grid-cell-array grid) i)))
+		 (if (equal (cell-button cell) button)
 			 (return cell);t
 			 )
 	   );let
@@ -560,7 +690,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;; )
 
 ;;指定エリアのセル配列を返す
-(def-f grid-get-area-cell-array (grid area-x area-y area-w area-h)
+(defun grid-get-area-cell-array (grid area-x area-y area-w area-h)
   (remove-if #'(lambda(cell) 
 				 (if (or
 						  (<= (+ area-x area-w) (cell-x cell)) 
@@ -579,7 +709,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 ;;ランダムに空白のセルを取得
-(def-f grid-random-get-empty (grid )
+(defun grid-random-get-empty (grid )
   (random-get (get-empty-cell-array (grid-cell-array grid)))
 )
 
@@ -588,7 +718,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;グリッドのセルから、セルのグリッド上の位置を割り出さないといけない
 ;;（ｘ，ｙはボタンの位置であり、グリッド上の座標の情報がない）
 ;;ので、結構手間。
-(def-f grid-random-get-empty-area (grid x y w h )
+(defun grid-random-get-empty-area (grid x y w h )
 	;指定のエリアのセル配列を作成後、要素が空の配列を取得し、ランダムで返す
 
   (random-get 
@@ -599,7 +729,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 ;;ランダムにx個の要素を配置
-(def-f grid-put-random( grid put-num )
+(defun grid-put-random( grid put-num )
   
   (let (empty-cell)
 	(loop for i below put-num do
@@ -612,43 +742,161 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 
-;;マッチチェック
-;;マッチのアルゴリズム悩ましい
-;;再帰使う
-;;ターゲットがｘマッチしているかどうかのチェック
-(def-f grid-check-match ( grid x y match-num )
-  (grid-check-match-r grid x y match-num 0)
-)
+;; ;;マッチチェック
+;; ;;マッチのアルゴリズム悩ましい
+;; ;;再帰使う
+;; ;;ターゲットがｘマッチしているかどうかのチェック
+;; (def-f grid-check-match ( grid x y match-num )
+;;   (grid-check-match-r grid x y match-num 0)
+;; )
 
-;;マッチチェック再帰用
-(def-f grid-check-match-r ( grid x y match-num deep-count)
-  ;;マッチ条件を満たしているかチェック
-  (cond 
-	;;マッチ数クリアしたらtを返す
-	((>= match-num deep-count) t)
-	;;セルがなければnil返す
+;; ;;マッチチェック再帰用
+;; (def-f grid-check-match-r ( grid x y match-num deep-count)
+;;   ;;マッチ条件を満たしているかチェック
+;;   (cond 
+;; 	;;マッチ数クリアしたらtを返す
+;; 	((>= match-num deep-count) t)
+;; 	;;セルがなければnil返す
 	
-	;それ以外なら上下左右に潜る
-	(t
-	;;右チェック
-	 (cond 
-	   ((not (= nil (grid-get-cell grid (+ x 1) y))) 
-		;;t時さらに潜る
-		(+ deep-count 1)
-		(grid-check-match-r grid (+ x 1) y match-num deep-count)
-		)
-	   ;;false時なにもしない
-	   )
-	;;左チェック
-	;;上チェック
-	;;下チェック
-	 )
-	)
-)
+;; 	;それ以外なら上下左右に潜る
+;; 	(t
+;; 	;;右チェック
+;; 	 (cond 
+;; 	   ((not (= nil (grid-get-cell grid (+ x 1) y))) 
+;; 		;;t時さらに潜る
+;; 		(+ deep-count 1)
+;; 		(grid-check-match-r grid (+ x 1) y match-num deep-count)
+;; 		)
+;; 	   ;;false時なにもしない
+;; 	   )
+;; 	;;左チェック
+;; 	;;上チェック
+;; 	;;下チェック
+;; 	 )
+;; 	)
+;; )
 
-(def-f grid-get-cell-right (grid target-cell)
+
+;;汎用マッチチェック関数
+;;Match-3パズルで使う連続マッチ数チェックをベースに
+;;マッチ数、ラインの向き、チェック内容をカスタマイズできるように構成
+;;マッチしたデータのリストを返す。このリストは重複しない
+(defun grid-check-match (grid require-num 
+						 horizontal vertical slanting
+						 test)
+
+
+  ;;各行毎に、左から１マスずつチェックし、同じ色が３つ以上続くようなら
+  ;;ブロックのmatchedをtにする
+  ;;その後、列についても上から同じチェックをする
+  ;;再帰を使う
+
+  ;;左上から１行ずつチェック
+  ;;マッチチェックし終わったブロックは無視しない。
+  ;;無視した場合、縦方向にも検索があるので、Ｌの字になっていると失敗する
+
+  ;;再帰の中でマッチチェックが成立したものを、マッチリストに追加していき、
+  ;;全部終わったらこのリストを返す
+  (let (match-list)
+	(setq match-list (new-vec))
+
+	(loop for y below (grid-h-cell-num grid) do
+		 (loop for x below (grid-w-cell-num grid) do
+			  
+			  (let (cell)
+				(setq cell (grid-get-cell grid x y))
+				(cond
+				  (
+				   (not (equal cell nil))
+										;t
+				   (if (equal horizontal t)
+					   (grid-check-match-r-horizontal grid cell require-num test match-list))
+				   (if (equal vertical t)
+					   (grid-check-match-r-vertical grid cell require-num test match-list))
+				   (if (equal slanting t)
+					   (grid-check-match-r-slanting grid cell require-num test match-list))
+				  )
+				  );cond
+				
+				);let
+			  
+			  
+			  );loop x
+		 );loop y
+	
+	;;作成したマッチリストの重複を削除して返す
+	(remove-duplicates match-list :from-end t)
+
+	);let match-list
   
 )
 
+;;自分の右側のブロックに潜っていく再帰関数
+(def-f grid-check-match-r-horizontal (grid cell require-num test match-list)
+  (grid-check-match-r grid cell nil 0 1 0 require-num test match-list)
+)
+;;自分の下側のブロックに潜っていく再帰関数
+(def-f grid-check-match-r-vertical (grid cell require-num  test match-list)
+  (grid-check-match-r grid cell nil 0 0 1 require-num test match-list)
+)
+;;自分の右下のブロックに潜っていく再帰関数
+(def-f grid-check-match-r-slanting (grid cell require-num test match-list)
+  (grid-check-match-r grid cell nil 0 1 1 require-num test match-list)
+)
+;;指定のブロック位置から、move-x move-yの方向に潜っていく再帰関数
+;;同じ色が続かなくなった時に、マッチカウントを返す。
+;;マッチカウントを返されて、それが３以上だったらそのブロックのマッチフラグを立てる
+
+(def-f grid-check-match-r (grid cell before-cell match-count move-x move-y 
+								 require-num test match-list)
 
 
+  (let ((recursive-finish nil))
+	(if (not (equal (cell-data cell) nil))
+		(funcall test (cell-data cell))
+		)
+	;;前回のセルとマッチしているかチェック
+	;;マッチしていなければ値を返す
+	;;マッチ判定は引数のtest関数にセルのデータを渡し、返ってくるデータを使って判定
+	(if (not (equal before-cell nil))
+;; 		(if (equal (block-color block) (block-color before-block))
+			(if (equal (funcall test (cell-data cell))
+					   (funcall test (cell-data before-cell)))
+				(setq match-count (+ match-count 1) );t
+				(setq recursive-finish t);nil
+			);if check match color
+		);if check left block
+
+  ;;次のセルへ再帰使う
+  (if (equal recursive-finish nil)
+  (let (next-cell)
+    ;次のセルを取得
+;; 	(setq next-cell (grid-get-cell-from-block grid block move-x move-y))
+	(setq next-cell (grid-get-cell-from-cell grid cell move-x move-y))
+	(if (and
+		 (not (equal next-cell nil));;次のセルがあるかチェック
+		 (not (equal (cell-data next-cell) nil));;次のセルにデータがあるか
+		 )
+
+		(setq match-count
+		 (grid-check-match-r grid next-cell cell match-count move-x move-y require-num test match-list)
+		 )
+		 );if
+
+	;;戻ってきたmatch-countでマッチ数をチェック
+	;;３以上ならフラグ立てる
+	(if (>= match-count (- require-num 1) )
+;; 		(setf (block-matched block) t)
+;;  		(print (grid-get-cell-from-data *grid* block))
+		(vec-push match-list (cell-data cell))
+		);if match count
+	
+	);let
+  );if recursive
+
+
+	;;マッチ数を返す
+ 	match-count
+	);let recursive
+
+)

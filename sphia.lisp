@@ -31,9 +31,8 @@
 
   ;;変数
   (def-v *core-number* 0)
-  (def-v *select-coin-array* (make-array 0 :fill-pointer t :adjustable t))
-
-  
+;;   (def-v *select-coin-array* (make-array 0 :fill-pointer t :adjustable t))
+  (def-v *select-coin-vec* (new-vec))
 
   ;;ゲーム状態遷移
 ;;   (def-v *flag-block-put* nil);ブロックの設置フラグ
@@ -53,12 +52,13 @@
 
    ;;マッチチェック
 ;;    (def-v *match-require-num* 3);３つで消える
-   
 );end-variable
+
 
 ;;セルのデータに設定するブロッククラス
 ;;タイプはdrag,virusのどちらか、connectは接続方向、matchedはマッチチェック用
 (defstruct (coin) (number 0) (color nil) (type nil) (checked nil)  )
+
 
 ;;セルのデータを返すコールバック関数
 (def-f callback-make-cell-data ()
