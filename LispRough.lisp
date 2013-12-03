@@ -241,6 +241,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 ;Square
 (defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) )
+;; (defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) (visible t) )
 (defmethod draw-square ((obj square))
   (map-set-square (square-x obj) (square-y obj)
 		  (square-w obj) (square-h obj) )
@@ -249,6 +250,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
  
 ;Label
 (defstruct (label (:include square)) (text "") (visible t) )
+;; (defstruct (label (:include square)) (text "") )
 (defun draw-label ( obj )
   (draw-square obj)
   (map-set-str (+ (square-x obj) 1) (+ (square-y obj) 1) (label-text obj))
@@ -379,7 +381,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;クリック機能を持つ事が前提で、ユーザーはＯＦＦにもできる
 ;;グリッドの初期値に与えたキーとインデックスの組み合わせで押すことができるようにする
 ;;デフォルトのオブジェクトの考え方は無く、
-(defstruct (grid) (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (visible t) (cell-array nil) (callback-update nil) (callback-push-cell nil))
+;; (defstruct (grid)  (x 0) (y 0) (w-cell-num 3) (h-cell-num 3) (cell-array nil) (callback-update nil) (callback-push-cell nil) )
+(defstruct (grid (:include label))  (w-cell-num 3) (h-cell-num 3) (cell-array nil) (callback-update nil) (callback-push-cell nil) )
 (defstruct (cell) (x 0) (y 0) (obj nil) (data nil) (button nil))
 (defun new-grid (x y w-cell-num h-cell-num cell-w cell-h 
 				 callback-make-cell-obj
@@ -658,6 +661,14 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	)
 )
 
+;;指定データの相対位置のデータを返す
+(defun grid-get-data-from-data( grid data x y )
+  (let (cell)
+    (setq cell (grid-get-cell-from-block grid data x y))
+    (cell-data cell)
+    );let
+
+)
 
 ;;指定のデータを持つ最初のセルを取得
 ;;存在しなければnilを返す

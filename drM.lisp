@@ -9,7 +9,8 @@
   (def-v *label-level* (new-label 1 6 7 3 "level"))
   (def-v *label-score* (new-label 1 9 7 3 "Score:"))
 
-  (def-v *level* 20)
+  (def-v *level* 1)
+  (def-v *level-virus-num* 1) ;;１レベルのウィルス数
   (def-v *score* 0)
   (def-v *hp-gage* 10)
   (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
@@ -37,6 +38,7 @@
   (def-v *flag-fall* nil);落下中フラグ
   (def-v *flag-match-check* nil);マッチチェックフラグ
   (def-v *flag-auto-fall* nil);自動落下フラグ
+  (def-v *flag-check-clear* nil);クリアチェック
 
   ;;操作ブロック
   (def-v *fall-block-a* nil)
@@ -45,10 +47,12 @@
 
   ;;grid用データを作成
    (def-v *grid* (new-grid 10 2 8 18 3 2 
-						   #'callback-make-cell-obj 
-						   #'callback-make-cell-data 
-						   #'callback-update-cell
-						   );new-grid
+			   #'callback-make-cell-obj 
+			   #'callback-make-cell-data 
+			   #'callback-update-cell
+			   'g
+			   nil
+			   );new-grid
 	 );def-v
 
    ;;マッチチェック
@@ -61,16 +65,23 @@
 (defstruct (block) (color nil) (type nil) (connect nil) (direction nil) (matched nil)  )
 
 ;;セルのデータを返すコールバック関数
-(def-f callback-make-cell-data ()
+(def-f callback-make-cell-data (index cell)
 ;;   (make-block)
   nil
 )
 
 ;;セルの見た目を表すオブジェクト作成関数
-(def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
+;; (def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
+;;   (new-label
+;;    (+ grid-x (* x w));x
+;;    (+ grid-y (* y h));y
+;;    w h ;w, h
+;;    (format nil " ");str
+;;    )
+;; )
+(def-f callback-make-cell-obj ( x y w h index )
   (new-label
-   (+ grid-x (* x w));x
-   (+ grid-y (* y h));y
+   x y
    w h ;w, h
    (format nil " ");str
    )
@@ -187,7 +198,7 @@
 ;;ベース・ラインより下にランダム配置する
 ;;飽和量が一定を超えると、ベースラインより上にも配置する
 (def-f grid-put-random-drm( grid level base-line-y)
-  (loop for i below (* level 4) do
+  (loop for i below (* level *level-virus-num*) do
 	   (let ((empty-cell) (put-block) )
 		 (setq empty-cell 
 			   (grid-random-get-empty-area grid 
@@ -517,17 +528,42 @@
 ;;マッチフラグの立っているブロックを全て削除
 (def-f delete-matched-block()
   (loop for i below (length (grid-cell-array *grid*)) do
-	   (let (block)
+	   (let (block connected-block)
 		 (setq block (cell-data (aref (grid-cell-array *grid*) i)))
 		 
-		 (if (and
+		 (cond ((and
 			  (not (equal block nil));ブロック存在チェック
 			  (equal (block-matched block) t));マッチフラグチェック
-			 (setf (cell-data (aref (grid-cell-array *grid*) i)) nil)
-			 );if
+
+		       ;コネクション解除
+		       (setq connected-block (get-connect-block block))
+		       (if connected-block
+		       	   (setf (block-connect connected-block) nil))
+		       ;ブロック削除
+		       (setf (cell-data (aref (grid-cell-array *grid*) i)) nil);
+		       ));cond
 
 		 );let
 	   );loop
+)
+
+;;コネクションしてあるブロックを取得
+(def-f get-connect-block (block)
+  (let (r-block x y)
+    (setq x 0)
+    (setq y 0)
+    (cond ((block-connect block)
+	(cond 
+	  ((= (block-direction block) 0) (setq x 1) ) ;右方向
+	  ((= (block-direction block) 1) (setq y 1) ) ;下方向   
+	  ((= (block-direction block) 2) (setq x -1)) ;左方向
+	  ((= (block-direction block) 3) (setq y -1)) ;上方向
+	  );cond direction
+	  (setq r-block (grid-get-data-from-data *grid* block x y))
+	);cond block
+	);if
+    r-block
+    );let
 )
 
 ;;ターンを進める
@@ -567,18 +603,18 @@
 	 (update-score)
 
 	 (print (get-matched-block-list *grid*))
+	 (setq *flag-match-check* nil)
 
-	 ;;マッチしていなければ次のブロックへ
+	 ;;マッチしていなければクリアチェック
 	 ;;マッチがあれば削除して自動落下フェーズへ
 	 (cond 
 	   (
 	    (< 0 (length (get-matched-block-list *grid*)))
 	    (delete-matched-block);
 	    (setq *flag-auto-fall* t)
-	    (setq *flag-match-check* nil)
 	    );
 	   (t
-	    (setq *flag-block-put* t)
+	    (setq *flag-check-clear* t)
 	    )
 	   );cond match count check
 	 );cond *flag-match-check*
@@ -598,6 +634,14 @@
 	   );let
 	 )
 
+	;;クリアチェック
+	((equal *flag-check-clear* t)
+	 (setq *flag-check-clear* nil)
+	 (if (check-clear)
+	     (show-clear);t
+	     (setq *flag-block-put* t);nil
+	     );if
+	 )
        
 	);cond
 
@@ -646,11 +690,36 @@
     (setq block-list (remove nil block-list))
     (setq block-list (remove-if (lambda(x) (equal (block-type x) "virus")) block-list))
     (setq block-list (remove-if (lambda(x) (equal (check-fall-stop x) t )) block-list))
+    (setq block-list (remove-if (lambda(x) (check-pair-lost-in-list x block-list)) block-list))
     (print block-list)
     (move-block block-list 0 1)
     (length block-list)
     )
 )
+
+;;リストからペアが見つからないものについてtを返す
+;;ブロックリストから、ペアが見つからないものを排除
+;;リストの中にペアのブロックが含まれているかチェック
+;;最初からコネクションがない場合は無視し、コネクションがあるものはペアがリスト内に存在するかチェック
+(def-f check-pair-lost-in-list (block block-list)
+
+  (let (pair-block r-check)    
+    (setq pair-block (get-connect-block block))
+    (cond ((and
+	    pair-block 
+	    (block-connect block)
+	    (equal (find pair-block block-list) nil)
+	    );and
+	   (setq r-check t)
+	   ));cond
+    r-check
+    );let
+
+)
+
+
+
+
 
 ;;着地するまで落下
 (def-f push-fall()
@@ -851,6 +920,22 @@
 
 
 
+(def-f check-clear()
+  (let (virus-list)
+    (setq virus-list (map 'list (lambda(cell) (cell-data cell)) (grid-cell-array *grid*)))
+    (setq virus-list (remove nil virus-list))
+    (setq virus-list 
+	  (remove-if (lambda(block) (not (equal (block-type block) "virus"))) virus-list))
+    (print virus-list)
+    (if (= (length virus-list) 0)
+	t
+	nil)
+    );let
+)
+
+(def-f show-clear()
+  (set-text *message-label* "clear")
+  );
 
 ;; (def-f win()
 ;;   (setq *money* (+ *money* 10))
