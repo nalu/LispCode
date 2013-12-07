@@ -95,7 +95,7 @@
 ;;Vec
 ;;vectorを簡単定義
 ;;近年のプログラミングスタイルになるべく近づける仕様にしたい
-(defmacro new-vec ()
+(defun new-vec ()
 ;;   `(defparameter ,name (make-array 0 :fill-pointer t :adjustable t))
   (make-array 0 :fill-pointer t :adjustable t)
 )

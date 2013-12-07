@@ -313,6 +313,14 @@
 	  )
 
 )
+(def-f check-fall-stop-ignore (block ignore-list)
+
+  (if (equal t ( check-cell-empty-from-block-ignore block 0 1 ignore-list) )
+	  nil;t
+	  t;
+	  )
+
+)
 
 
 ;;指定のブロックの下の位置にあるブロックを取得
@@ -340,6 +348,10 @@
   (check-cell-empty
    (grid-get-cell-from-block *grid* block x y))
 )
+(def-f check-cell-empty-from-block-ignore ( block x y ignore-list )
+  (check-cell-empty-ignore
+   (grid-get-cell-from-block *grid* block x y) ignore-list )
+)
 
 ;;指定のセルが空いているかチェック
 ;;空いていたらt、ブロックや壁がある場合nilを返す
@@ -357,6 +369,29 @@
 	   (equal block nil)
 	   (equal block *fall-block-a*)
 	   (equal block *fall-block-b*)
+	   );or
+	  );and
+	 
+	 t;t
+	 nil;nil
+	 )
+	);let
+  );if cell nil cehck
+     
+ )
+
+(def-f check-cell-empty-ignore (cell ignore-list)
+
+  (if (not (equal cell nil))
+      
+      (let (block)
+	(setq block (cell-data cell))
+	(if
+	 (and
+	  (not (equal cell nil))
+	  (or 
+	   (equal block nil)
+	   (find block ignore-list)
 	   );or
 	  );and
 	 
@@ -657,11 +692,22 @@
 )
 
 
+
+(defmacro for ((var start end) &body body)
+  (let ((block-name (gensym "BLOCK")))
+    `(loop for ,var from ,start below ,end
+           do (block ,block-name
+                (flet ((for-continue ()
+                         (return-from ,block-name)))
+                  ,@body)))))
+
 ;;全ドラッグタイプブロックの落下
 ;;落下できた数を返す
 (def-f fall-block-all()
-  (let (block-list move-count)
+  (print "callf all")
+  (let (block-list move-count falled-list)
     (setq move-count 0)
+    (setq falled-list (new-vec))
     (setq block-list (grid-get-data-array *grid*))
     (setq block-list (remove nil block-list))
     (setq block-list (remove-if (lambda(x) (equal (block-type x) "virus")) block-list))
@@ -671,23 +717,37 @@
 
     ;;下から１つずつ落下リストから削除しないと、落下中ブロックが下の落下ブロックに乗って、着地とみなされてしまう
     (setq block-list (reverse block-list))
-    (loop for i below (length block-list) do
+    ;; (loop for i below (length block-list) do
+    (for (i 0 (length block-list))
 	 (let (block pair-block move-list)
 	   (setq block (elt block-list i))
 	   (setq pair-block (get-connect-block block))
+
+	   ;;既に移動済みのブロックは処理しない。ペア移動した際に起こる
+	   (format t "~d > ~d" i (length falled-list))
+	   (cond ((find block falled-list )
+	   	  (print (length falled-list))
+	       (print block)
+	       (for-continue)
+	       ))
 
 	   ;;ペアが無い場合は単純に移動可能判定をして、move-listに加える
 	   ;;ペアがあればそのブロックも判定し、両方共移動可能な場合に限りmove-listに加える
 	   (if (not pair-block)
 	       ;;ブロック単体
-	       (if (not (check-fall-stop block))
-		   (setq move-list (list block))
+	       (cond ((not (check-fall-stop block))
+		      (setq move-list (list block))
+		      (vec-push falled-list block)
 		   )
+		     )
 	       ;;ペア判定
-	       (if (and (not (check-fall-stop block)) 
-			(not (check-fall-stop pair-block)))
+	       (cond ((and (not (check-fall-stop-ignore block (list pair-block) )) 
+			   (not (check-fall-stop-ignore pair-block (list block))))
 		   (setq move-list (list block pair-block))
+		   (vec-push falled-list block)
+		   (vec-push falled-list pair-block)
 		   )
+		     )
 	       );pair check
 
 
@@ -699,6 +759,7 @@
 	     
 	   );let
 	 );loop
+
     
     move-count
     )
