@@ -47,6 +47,8 @@
 						   #'callback-make-cell-obj 
 						   #'callback-make-cell-data 
 						   #'callback-update-cell
+						   'g
+						   #'callback-push-cell
 						   );new-grid
 	 );def-v
 
@@ -61,27 +63,17 @@
 
 
 ;;セルのデータを返すコールバック関数
-(def-f callback-make-cell-data ()
+(def-f callback-make-cell-data (index cell)
 ;;   (make-block)
   nil
 )
 
 ;;セルの見た目を表すオブジェクト作成関数
-(def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
-;;   (new-label
-;;    (+ grid-x (* x w));x
-;;    (+ grid-y (* y h));y
-;;    w h ;w, h
-;;    (format nil " ");str
-;;    )
-
-  (new-button
-   (+ grid-x (* x w));x
-   (+ grid-y (* y h));y
+(def-f callback-make-cell-obj ( x y w h index )
+  (new-label
+   x y
    w h ;w, h
    (format nil "~d " index);str
-   (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
-   #'push-grid
    )
 
 )
@@ -89,15 +81,17 @@
 ;;セルのアップデート関数
 (def-f callback-update-cell (cell)
 
-  (let (coin button str)
+
+  (let (coin label button str)
 	(setq coin (cell-data cell))
-	(setq button (cell-obj cell))
+	(setq button (cell-button cell))
+	(setq label (cell-obj cell))
 	;;チェック済みとそうでない場合で見た目を変える
 	(if (equal (coin-checked coin) t)
-		(setq str (format nil "[~d] <~d>" (button-key button) (coin-number coin)));t
+		(setq str (format nil "[~d] >>~d" (button-key button) (coin-number coin)));t
 		(setq str (format nil "[~d] ~d" (button-key button) (coin-number coin)));t
 		);if
-	(set-text button str)
+	(set-text label  str)
 	);let
 )
 
@@ -129,14 +123,14 @@
   (setf (label-text *label-core-sphia*) (format nil "CORE: < ~d >" *core-number*))
 )
 
-
-(def-f push-grid (button)
-  (let (cell data)
-	(setq cell (aref (grid-cell-array *grid*) (eval (button-key button))))
-	(setq data (cell-data cell))
-	(print data)
+(def-f callback-push-cell(cell)
+  (let (coin)
+	(setq coin (cell-data cell))
+	(setf (coin-checked coin) t)
 	
 	)
+  
+  (grid-update *grid*)
 )
 
 

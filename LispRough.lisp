@@ -796,7 +796,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 						 horizontal vertical slanting
 						 test)
 
-
   ;;各行毎に、左から１マスずつチェックし、同じ色が３つ以上続くようなら
   ;;ブロックのmatchedをtにする
   ;;その後、列についても上から同じチェックをする
@@ -808,6 +807,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
   ;;再帰の中でマッチチェックが成立したものを、マッチリストに追加していき、
   ;;全部終わったらこのリストを返す
+
+
+
   (let (match-list)
 	(setq match-list (new-vec))
 
@@ -821,11 +823,14 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 				   (not (equal cell nil))
 										;t
 				   (if (equal horizontal t)
-					   (grid-check-match-r-horizontal grid cell require-num test match-list))
+					   (grid-check-match-r-horizontal grid cell 
+													  require-num test match-list))
 				   (if (equal vertical t)
-					   (grid-check-match-r-vertical grid cell require-num test match-list))
+					   (grid-check-match-r-vertical grid cell 
+													require-num test match-list))
 				   (if (equal slanting t)
-					   (grid-check-match-r-slanting grid cell require-num test match-list))
+					   (grid-check-match-r-slanting grid cell 
+													require-num test match-list))
 				  )
 				  );cond
 				
@@ -837,6 +842,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	
 	;;作成したマッチリストの重複を削除して返す
 	(remove-duplicates match-list :from-end t)
+	(print match-list)
 
 	);let match-list
   
@@ -861,7 +867,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 (def-f grid-check-match-r (grid cell before-cell match-count move-x move-y 
 								 require-num test match-list)
 
-
   (let ((recursive-finish nil))
 	(if (not (equal (cell-data cell) nil))
 		(funcall test (cell-data cell))
@@ -871,8 +876,10 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	;;マッチ判定は引数のtest関数にセルのデータを渡し、返ってくるデータを使って判定
 	(if (not (equal before-cell nil))
 ;; 		(if (equal (block-color block) (block-color before-block))
-			(if (equal (funcall test (cell-data cell))
-					   (funcall test (cell-data before-cell)))
+			(if (and
+				 (equal (funcall test (cell-data cell)) t)
+				 (equal (funcall test (cell-data before-cell)) t)
+				 )
 				(setq match-count (+ match-count 1) );t
 				(setq recursive-finish t);nil
 			);if check match color

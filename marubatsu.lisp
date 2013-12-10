@@ -52,18 +52,6 @@
 )
 
 ;;セルの見た目を表すオブジェクト作成関数
-;; (def-f callback-make-cell-obj ( grid-x grid-y x y w h index )
-;;   (new-button 
-;;    (+ grid-x (* x w));x
-;;    (+ grid-y (* y h))
-;;    w h ;w, h
-;;    (format nil "~d" index);str
-;;    ;;  				'a ;key
-;; ;;    (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
-;;    nil
-;;    #'push-grid) 
-;; )
-
 (def-f callback-make-cell-obj ( x y w h index )
 
   (new-label
@@ -92,6 +80,11 @@
 	(grid-update *grid*)
 	;;enemy
  	(enemy-hand)
+   ;;check
+   (if (check-win)
+	   (print "win"))
+   (if (check-lose)
+	   (print "lose"))
 
    );let
   
@@ -172,14 +165,31 @@
 (def-f check-win()
   ;;ここにはGridのシステム内のマッチを使いたい
   ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
-  (grid-check-match *grid* 3 t t t 
-					(lambda(data) (print (button-text data))))
+  (if
+    (< 0 (length (grid-check-match *grid* 3 t t t #'match-check-o)))
+	t
+	nil
+	)
+)
+;;勝敗チェック
+(def-f check-lose()
+  ;;ここにはGridのシステム内のマッチを使いたい
+  ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
+  (if
+    (< 0 (length (grid-check-match *grid* 3 t t t #'match-check-x)))
+	t
+	nil
+	)
 )
 
 ;;グリッドのマッチチェックに登録する判定関数
-
 (def-f match-check-o(block)
-  (if (equal (block-text block) "o")
+  (if (equal (block-token block) "o")
+	  t
+	  nil)
+)
+(def-f match-check-x(block)
+  (if (equal (block-token block) "x")
 	  t
 	  nil)
 )
