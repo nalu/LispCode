@@ -356,7 +356,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-;--------------------------------- MULTI GOB ---------------------------------
+;--------------------------------- MULTIPLE GOB ---------------------------------
 
 ;;グリッドクラス（テスト）
 ;;グリッド、セルの２クラスで構成する
@@ -396,18 +396,11 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		(cell-array (make-array (* w-cell-num h-cell-num)))
 		)
 
-	;;セルの見た目作成コールバックがnilならデフォルト関数をセット
-;; 	(cond 
-;; 	  ((equal callback-make-cell-obj nil)
-;; 		(setq callback-make-cell-obj #'grid-default-callback-make-cell-obj)
-;; 		(setq callback-update-cell #'grid-default-callback-update-cell)
-;; 	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data)
-	    
-;; 		))
-
+	;;アップデートコールバックがnilならデフォルト関数をセット
 	(if (not callback-update-cell)
 		(setq callback-update-cell #'grid-default-callback-update-cell))
 
+	;;セルデータ作成コールバックが無ければデフォルト関数をセット
 	(if (not callback-make-cell-data)
 	    (setq callback-make-cell-data #'grid-default-callback-make-cell-data))
 
@@ -420,33 +413,16 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		   (setq cell-obj-x (+ x (* cell-x cell-w)))
 		   (setq cell-obj-y (+ y (* cell-y cell-h)))
 		   (setq cell
-				 (make-cell 
-				  :x cell-x
-				  :y cell-y
-				  
-										;コールバックを用いてオブジェクトを作成
-;; 				  :obj 
-;; 				  (funcall 
-;; 				   #'grid-default-callback-make-cell-obj
-;; 				   x;grid x
-;; 				   y;grid y
-;; 				   (mod i w-cell-num);cell x
-;; 				   (truncate i w-cell-num); cell y
-;; 				   cell-w
-;; 				   cell-h
-;; 				   i
-;; 				   callback-make-cell-obj
-;; 				   )
-
-;; 				  :data
-;; 				  (funcall
-;; 				   callback-make-cell-data
-;; 				   )
-				  );make cell
-				 );setq
+			 (make-cell 
+			  :x cell-x
+			  :y cell-y
+			  );make cell
+			 );setq
 
 
 		   ;;セルのボタンを作成
+		   ;;ボタンはデフォルトで確実に作成する
+		   ;;作成後、ユーザー指定のコールバックでオブジェクトを作成する
 		   (setq button
 				  (funcall 
 				   #'grid-default-callback-make-cell-obj
@@ -455,22 +431,23 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 				   cell-w
 				   cell-h
 				   i
-				   callback-make-cell-obj
 				   )
 				 )
-		   (setf (cell-button cell) button)
+ 		   (setf (cell-button cell) button)
 
 		   ;;セルのオブジェクトを作成
 		   (cond (callback-make-cell-obj 
-				  (setf (cell-obj cell)
-						(funcall callback-make-cell-obj
-								 cell-obj-x
-								 cell-obj-y
-								 cell-w
-								 cell-h
-								 i)
-						)
+			  (setf (cell-obj cell)
+				(funcall callback-make-cell-obj
+					 cell-obj-x
+					 cell-obj-y
+					 cell-w
+					 cell-h
+					 i)
+				)
+
 			   ));cond
+
 
 
 
@@ -507,29 +484,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;;セットすることもできる。
 ;;セル専用のボタンを作成し、ボタンのタグにはセルを持たせる
 ;;x,y,w,h,indexは、グリッド上のセル座標、セル幅、高さ、セル番号
-;; (defun grid-default-callback-make-cell-obj ( grid-x grid-y cell x y w h index 
-;; 											custom-make-cell-obj-callback )
-;;   (let (button)
-
-;; 	(setq button 
-;; 		  (new-button 
-;; 		   (+ grid-x (* x w));x
-;; 		   (+ grid-y (* y h))
-;; 		   w h ;w, h
-;; 		   (format nil "~d" index);str
-;; 		   ;;  				'a ;key
-;; 		   (read-from-string (format nil "~d" index)) ;グリッド番号をそのままキーに指定
-;; 		   #'grid-push-cell) 
-;; 		  );setq
-		  
-
-
-;; 	);let
-
-;; )
-
-(defun grid-default-callback-make-cell-obj ( x y w h index 
-											custom-make-cell-obj-callback )
+(defun grid-default-callback-make-cell-obj ( x y w h index )
 
   (new-button 
    x y
@@ -617,16 +572,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 				 ( equal (button-text (cell-obj cell)) "x"))
 			 t
 			 nil)
-;; 		 ) (grid-array grid))
 		 ) cell-array)
 	
 )
-
-
-;;グリッドの状態から勝敗判定
-;; (defun jadge-win()
-  
-;; )
 
 
 
@@ -695,10 +643,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 )
 
-;; 指定のセルのグリッドのｘ位置を返す
-;; (def-f grid-get-cell-x (grid cell)
-;;   (find cell (grid-array grid))
-;; )
 
 ;;指定エリアのセル配列を返す
 (defun grid-get-area-cell-array (grid area-x area-y area-w area-h)
@@ -744,7 +688,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   
   (let (empty-cell)
 	(loop for i below put-num do
-;; 		 (setq empty-cell (random-get (get-empty-cell-array grid)))
 		 (setq empty-cell (grid-random-get-empty grid))
 		 (set-text empty-cell "x")
 		 )
@@ -752,40 +695,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	
 )
 
-
-;; ;;マッチチェック
-;; ;;マッチのアルゴリズム悩ましい
-;; ;;再帰使う
-;; ;;ターゲットがｘマッチしているかどうかのチェック
-;; (def-f grid-check-match ( grid x y match-num )
-;;   (grid-check-match-r grid x y match-num 0)
-;; )
-
-;; ;;マッチチェック再帰用
-;; (def-f grid-check-match-r ( grid x y match-num deep-count)
-;;   ;;マッチ条件を満たしているかチェック
-;;   (cond 
-;; 	;;マッチ数クリアしたらtを返す
-;; 	((>= match-num deep-count) t)
-;; 	;;セルがなければnil返す
-	
-;; 	;それ以外なら上下左右に潜る
-;; 	(t
-;; 	;;右チェック
-;; 	 (cond 
-;; 	   ((not (= nil (grid-get-cell grid (+ x 1) y))) 
-;; 		;;t時さらに潜る
-;; 		(+ deep-count 1)
-;; 		(grid-check-match-r grid (+ x 1) y match-num deep-count)
-;; 		)
-;; 	   ;;false時なにもしない
-;; 	   )
-;; 	;;左チェック
-;; 	;;上チェック
-;; 	;;下チェック
-;; 	 )
-;; 	)
-;; )
 
 
 ;;汎用マッチチェック関数
@@ -889,7 +798,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (if (equal recursive-finish nil)
   (let (next-cell)
     ;次のセルを取得
-;; 	(setq next-cell (grid-get-cell-from-block grid block move-x move-y))
 	(setq next-cell (grid-get-cell-from-cell grid cell move-x move-y))
 	(if (and
 		 (not (equal next-cell nil));;次のセルがあるかチェック
@@ -904,8 +812,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	;;戻ってきたmatch-countでマッチ数をチェック
 	;;３以上ならフラグ立てる
 	(if (>= match-count (- require-num 1) )
-;; 		(setf (block-matched block) t)
-;;  		(print (grid-get-cell-from-data *grid* block))
 		(vec-push match-list (cell-data cell))
 		);if match count
 	
@@ -918,3 +824,22 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	);let recursive
 
 )
+
+
+
+
+
+;;メニュークラス
+;;グリッドの派生
+;;選択サポート付き
+;;通常時、選択時で状態を変える
+;;
+(defstruct (menu (:include grid)) (marker nil) )
+
+;; (defun new-menu (x y w-cell-num h-cell-num cell-w cell-h 
+;; 				 callback-make-cell-obj
+;; 				 callback-make-cell-data
+;; 				 callback-update-cell
+;; 				 key
+;; 				 callback-push-cell
+;; 				 )

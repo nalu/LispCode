@@ -9,8 +9,8 @@
   (def-v *label-level* (new-label 1 6 7 3 "level"))
   (def-v *label-score* (new-label 1 9 7 3 "Score:"))
 
-  (def-v *level* 1)
-  (def-v *level-virus-num* 1) ;;１レベルのウィルス数
+  (def-v *level* 20)
+  (def-v *level-virus-num* 4) ;;１レベルのウィルス数
   (def-v *score* 0)
   (def-v *hp-gage* 10)
   (def-v *label-next* (new-label 34 6 7 3 "NEXT"))
@@ -39,6 +39,7 @@
   (def-v *flag-match-check* nil);マッチチェックフラグ
   (def-v *flag-auto-fall* nil);自動落下フラグ
   (def-v *flag-check-clear* nil);クリアチェック
+  (def-v *flag-check-gameover* nil);ゲームオーバーチェック
 
   ;;操作ブロック
   (def-v *fall-block-a* nil)
@@ -62,7 +63,7 @@
 
 ;;セルのデータに設定するブロッククラス
 ;;タイプはdrag,virusのどちらか、connectは接続方向、matchedはマッチチェック用
-(defstruct (block) (color nil) (type nil) (connect nil) (direction nil) (matched nil)  )
+(defstruct (block) (color nil) (type nil) (connect nil) (direction nil) (matched nil) (moved nil)  )
 
 ;;セルのデータを返すコールバック関数
 (def-f callback-make-cell-data (index cell)
@@ -306,31 +307,21 @@
 ;;着地していたらtを返す。していなければnilを返す
 (def-f check-fall-stop (block)
 
-
   (if (equal t ( check-cell-empty-from-block block 0 1 ) )
 	  nil;t
 	  t;
 	  )
 
 )
+(def-f check-fall-stop-ignore (block ignore-list)
 
-;;着地していないブロックのリストを返す
-;;全て着地済みであれば、空のリストを返す
-;;操作ブロック落下＞マッチ＞全部落下処理の時に使う
-(def-f check-fall-stop-all ()
-;;   (loop for x below (grid-w-cell-num *grid*) do
-;; 	   (loop for y below (grid-h-cell-num *grid*) do
-			
-;; 			(let ((block (grid-get-cell *grid* x y)))
-;; 			  ;;ドラッグタイプのみを対象とする
-;; 			  (if (equal (block-type block) "drug")
-;; 				  (;t
-;; 				  );if drug check
-;; 			  );let
-
-;; 			));loop*2
+  (if (equal t ( check-cell-empty-from-block-ignore block 0 1 ignore-list) )
+	  nil;t
+	  t;
+	  )
 
 )
+
 
 ;;指定のブロックの下の位置にあるブロックを取得
 ;;存在しなければnilを返す
@@ -356,6 +347,10 @@
 (def-f check-cell-empty-from-block( block x y )
   (check-cell-empty
    (grid-get-cell-from-block *grid* block x y))
+)
+(def-f check-cell-empty-from-block-ignore ( block x y ignore-list )
+  (check-cell-empty-ignore
+   (grid-get-cell-from-block *grid* block x y) ignore-list )
 )
 
 ;;指定のセルが空いているかチェック
@@ -383,15 +378,33 @@
 	);let
   );if cell nil cehck
      
+ )
+
+(def-f check-cell-empty-ignore (cell ignore-list)
+
+  (if (not (equal cell nil))
+      
+      (let (block)
+	(setq block (cell-data cell))
+	(if
+	 (and
+	  (not (equal cell nil))
+	  (or 
+	   (equal block nil)
+	   (find block ignore-list)
+	   );or
+	  );and
+	 
+	 t;t
+	 nil;nil
+	 )
+	);let
+  );if cell nil cehck
+     
 )
 
 
 
-;;ドラッグタイプのブロックが配置されたセルのリストを返す
-(def-f get-drug-block-list (grid)
-  (map 'list (lambda (x) (print t)) (grid-cell-array grid))
-  
-)
 
 ;;敵の手を決定
 (def-f enemy-hand()
@@ -602,7 +615,6 @@
 	 (setq *score* (+ (get-score *grid*) *score*))
 	 (update-score)
 
-	 (print (get-matched-block-list *grid*))
 	 (setq *flag-match-check* nil)
 
 	 ;;マッチしていなければクリアチェック
@@ -623,7 +635,6 @@
 
 	;;自動落下
 	((equal *flag-auto-fall* t)
-	 (print "fallauto")
 	 (let (fall-count)
 	   (setq fall-count (fall-block-all))
 	   (cond ((= fall-count 0)
@@ -639,9 +650,20 @@
 	 (setq *flag-check-clear* nil)
 	 (if (check-clear)
 	     (show-clear);t
+	     (setq *flag-check-gameover* t);nil
+	     );if
+	 )
+
+	;;ゲームオーバーチェック
+	((equal *flag-check-gameover* t)
+	 (setq *flag-check-gameover* nil)
+	 (if (check-gameover)
+	     (show-gameover);t
 	     (setq *flag-block-put* t);nil
 	     );if
 	 )
+       
+
        
 	);cond
 
@@ -669,31 +691,77 @@
     (equal t (check-fall-stop *fall-block-b*)))
 )
 
-;;全ブロックの着地チェック
-(def-f check-fall-stop-all-block()
-  (let (block-list)
-    (setq block-list (grid-get-data-array *grid*))
-    (loop for i below (length block-list) do
 
-	 ;;コネクション未対応
-	 (print i)
-	 
-    	 );loop
-    );let
-)
+
+(defmacro for ((var start end) &body body)
+  (let ((block-name (gensym "BLOCK")))
+    `(loop for ,var from ,start below ,end
+           do (block ,block-name
+                (flet ((for-continue ()
+                         (return-from ,block-name)))
+                  ,@body)))))
 
 ;;全ドラッグタイプブロックの落下
 ;;落下できた数を返す
 (def-f fall-block-all()
-  (let (block-list)
+  (print "callf all")
+  (let (block-list move-count falled-list)
+    (setq move-count 0)
+    (setq falled-list (new-vec))
     (setq block-list (grid-get-data-array *grid*))
     (setq block-list (remove nil block-list))
     (setq block-list (remove-if (lambda(x) (equal (block-type x) "virus")) block-list))
-    (setq block-list (remove-if (lambda(x) (equal (check-fall-stop x) t )) block-list))
-    (setq block-list (remove-if (lambda(x) (check-pair-lost-in-list x block-list)) block-list))
-    (print block-list)
-    (move-block block-list 0 1)
-    (length block-list)
+    ;; (setq block-list (remove-if (lambda(x) (equal (check-fall-stop x ) t )) block-list))
+    ;; (setq block-list (remove-if (lambda(x) (check-pair-lost-in-list x block-list)) block-l
+    ;; ist))
+
+    ;;下から１つずつ落下リストから削除しないと、落下中ブロックが下の落下ブロックに乗って、着地とみなされてしまう
+    (setq block-list (reverse block-list))
+    ;; (loop for i below (length block-list) do
+    (for (i 0 (length block-list))
+	 (let (block pair-block move-list)
+	   (setq block (elt block-list i))
+	   (setq pair-block (get-connect-block block))
+
+	   ;;既に移動済みのブロックは処理しない。ペア移動した際に起こる
+	   (format t "~d > ~d" i (length falled-list))
+	   (cond ((find block falled-list )
+	   	  (print (length falled-list))
+	       (print block)
+	       (for-continue)
+	       ))
+
+	   ;;ペアが無い場合は単純に移動可能判定をして、move-listに加える
+	   ;;ペアがあればそのブロックも判定し、両方共移動可能な場合に限りmove-listに加える
+	   (if (not pair-block)
+	       ;;ブロック単体
+	       (cond ((not (check-fall-stop block))
+		      (setq move-list (list block))
+		      (vec-push falled-list block)
+		   )
+		     )
+	       ;;ペア判定
+	       (cond ((and (not (check-fall-stop-ignore block (list pair-block) )) 
+			   (not (check-fall-stop-ignore pair-block (list block))))
+		   (setq move-list (list block pair-block))
+		   (vec-push falled-list block)
+		   (vec-push falled-list pair-block)
+		   )
+		     )
+	       );pair check
+
+
+
+	   (cond (move-list
+	   	  (move-block move-list 0 1)
+	   	  (setq move-count (+ move-count 1))
+	   	  ))
+	     
+	   );let
+	 );loop
+
+    
+    move-count
     )
 )
 
@@ -919,14 +987,13 @@
 
 
 
-
+;;クリアチェック
 (def-f check-clear()
   (let (virus-list)
     (setq virus-list (map 'list (lambda(cell) (cell-data cell)) (grid-cell-array *grid*)))
     (setq virus-list (remove nil virus-list))
     (setq virus-list 
 	  (remove-if (lambda(block) (not (equal (block-type block) "virus"))) virus-list))
-    (print virus-list)
     (if (= (length virus-list) 0)
 	t
 	nil)
@@ -936,6 +1003,22 @@
 (def-f show-clear()
   (set-text *message-label* "clear")
   );
+
+;;ゲームオーバーチェック
+(def-f check-gameover()
+  (let (dead-cell)
+    (setq dead-cell (grid-get-cell *grid* 3 0))
+    (if (cell-data dead-cell)
+	t
+	nil;
+    );if
+    );let
+)
+
+(def-f show-gameover()
+  (print "gameover")
+  (set-text *message-label* "gameover")
+)
 
 ;; (def-f win()
 ;;   (setq *money* (+ *money* 10))
