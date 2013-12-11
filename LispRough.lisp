@@ -784,11 +784,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	;;マッチしていなければ値を返す
 	;;マッチ判定は引数のtest関数にセルのデータを渡し、返ってくるデータを使って判定
 	(if (not (equal before-cell nil))
-;; 		(if (equal (block-color block) (block-color before-block))
-			(if (and
-				 (equal (funcall test (cell-data cell)) t)
-				 (equal (funcall test (cell-data before-cell)) t)
-				 )
 				(setq match-count (+ match-count 1) );t
 				(setq recursive-finish t);nil
 			);if check match color
