@@ -4,12 +4,7 @@
 
 (defun game-variable()
 
-;  (defparameter *card-a-obj* 0)
-;  (defparameter *card-b-obj* 0)
-;  (defparameter *button-high* 0)
-;  (defparameter *button-low* 0)
   (defparameter *button-retry* 0)
-;  (defparameter *button-quit* 0)
   (defparameter *label-money* 0)
   
   (defparameter *card-array* (make-array 2))
@@ -21,16 +16,18 @@
 
 
   ;rs menu
-  (setq *button-dungeon-dolban* (new-button 3 14 5 3 "[D]olban" 'd #'push-dungeon-dolban))
-  (setq *button-forward* (new-button 5 14 10 3 "[F]orward" 'f #'push-forward))
-  (setq *button-back* (new-button 5 17 10 3 "[B]ack" 'b #'push-walk-back))
   (setq *quit-button* ( new-button 1 20 5 3 "[Q]uit" 'q #'push-quit))
-
-  (setq  *label-deep* (new-label 18 3 7 3 "deep"))
   (setq  *label-hp* (new-label 18 6 7 3 "HP"))
-  
   (setq *message-label* (new-label 3 2 13 3 ""))
 
+  ;;home
+  (setq *button-dungeon-dolban* (new-button 3 14 5 3 "[D]olban" 'd #'push-dungeon-dolban))
+
+  ;;in dungeon
+  (setq *button-forward* (new-button 5 14 10 3 "[F]orward" 'f #'push-forward))
+  (setq *button-back* (new-button 5 17 10 3 "[B]ack" 'b #'push-walk-back))
+  (setq  *label-deep* (new-label 18 3 7 3 "deep"))
+  
   (setq *label-trap* (new-label 7 6 5 5 "TRAP"))
   (setq *button-remove-trap* (new-button 10 20 5 3 "[R]emoveTrap" 'r #'push-remove-trap))
 
@@ -39,6 +36,9 @@
   (setq *button-attack* (new-button  5 14 10 3 "[A]ttack" 'a #'push-attack))
   (setq *button-magic* (new-button  5 17 10 3 "[M]agic" 'm #'push-magic))
   (setq *button-escape* (new-button 10 20 5 3 "[E]scape" 'e #'push-escape))
+
+  ;enum
+  (enum mode (home dungeon battle))
 
   ;rs parameter
   (defparameter *deep* 0)
