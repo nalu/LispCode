@@ -28,9 +28,16 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 ;;object-arrayを追加できる形式に変更
-(defparameter *object-array* (make-array 0 :fill-pointer t :adjustable t))
+(defparameter *object-array* nil)
+(defun init-object-array ()
+	(setq *object-array* (make-array 0 :fill-pointer t :adjustable t))
+)
+
 (defun object-add (object)
   (vector-push-extend object *object-array*))
+(defun gob-remove (object)
+  (vec-remove-if *object-array* object)
+)
 
 ;メソッド変換用(alistにしたい
 (defparameter *def-f-array* (make-array 0 :fill-pointer t :adjustable t))
@@ -47,7 +54,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (vector-push-extend enum *enum-array*))
 
 
+
 (defun lr-begin ( &optional (screen-w *default-screen-w*) (screen-h *default-screen-h*) ) 
+  (init-object-array)
   (setq *quit* 0)
   (setq *screen-w* screen-w )
   (setq *screen-h* screen-h)
@@ -112,7 +121,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
   ;Object - draw
-;;   (loop for i below *object-num* do
   (loop for i below (length *object-array*) do
        (let ((obj (aref *object-array* i)))
 		 (if (equal (label-visible obj) t)
@@ -143,7 +151,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;format-numには半角なら１、全角なら２
 ;マップ範囲外の位置を指定すると何もセットしない
 (defun map-set-char ( x y char &optional (one-character-cell-num 1) ) 
-  (if (and (> *screen-h* y)  (> *screen-w* x))
+  (if (and (> *screen-h* y)  (> *screen-w* x) (<= 0 y) (<= 0 x) )
 
     (let (cut-char f-char)
       (setq f-char (format nil "~~~da" one-character-cell-num))
@@ -161,6 +169,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;文字列をマップにセットする
 ;セルの文字数に満たない場合は空白で埋めて、はみ出す場合は隣のセルに書く
 (defun map-set-str ( x y str ) 
+
   
   (setq str (format nil "~a" str))
   ;文字数を空白で埋めて調整
@@ -218,7 +227,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
   (loop for y from top below (+ top height) do
        (loop for x from left below (+ left width) do
-	    (cond ( (= x left) (map-set-char x y "| ") )
+	    (cond 
+		  ( (= x left) (map-set-char x y "| ") )
 		  ( (= x (+ left (- width 1))) (map-set-char x y " |"))
 		  ( (= y top) (map-set-char x y "--"))
 		  ( (= y (+ top (- height 1))) (map-set-char x y "--"))
@@ -312,8 +322,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 ;defunの代用を作成
 ;このメソッドで関数定義しておけば、*def-f-arary*に内容が保管され、コンバート可能になる。
+;リードマクロは展開された後保存される
 (defmacro def-f (name args &body body) 
-;  (print name)
   (def-f-add (list name args body)  )
   `(defun ,name ,args ,@body);なぜかこの行を先にすると、定義されない
 )
@@ -564,14 +574,26 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 
-;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
+;; ;;グリッドのボタン群のうちテキスト内容がox以外の配列を抽出。
+;; (defun get-empty-cell-array (cell-array)
+;;   (remove-if 
+;; 	 #'(lambda (cell) 
+;; 		 (if (or ( equal (button-text (cell-obj cell)) "o" ) 
+;; 				 ( equal (button-text (cell-obj cell)) "x"))
+;; 			 t
+;; 			 nil)
+;; 		 ) cell-array)
+	
+;; )
+
+;;汎用的に使えるように作り直し。
+;;グリッドのデータが空セルの配列を作成する
 (defun get-empty-cell-array (cell-array)
   (remove-if 
 	 #'(lambda (cell) 
-		 (if (or ( equal (button-text (cell-obj cell)) "o" ) 
-				 ( equal (button-text (cell-obj cell)) "x"))
-			 t
-			 nil)
+		 (if (equal (cell-data cell) nil)
+			 nil
+			 t)
 		 ) cell-array)
 	
 )
@@ -664,7 +686,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 ;;ランダムに空白のセルを取得
-(defun grid-random-get-empty (grid )
+(defun grid-random-get-empty-cell (grid )
   (random-get (get-empty-cell-array (grid-cell-array grid)))
 )
 
@@ -824,9 +846,106 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 )
 
+;;MGOB パラメータクラス
+(defstruct (parameter)
+  value
+  default
+  min
+  max
+  add
+)
+(defun new-parameter (default min max)
+  (make-parameter
+   :value default
+   :default default
+   :min min
+   :max max
+   )
+)
+(defun parameter-add (param val)
+  (+= @param.value val)
+  (if (> @param.value @param.max)
+	  (setf @param.value @param.max)
+	  )
+  (if (< @param.value @param.min)
+	  (setf @param.value @param.min)
+	  )
+  param
+)
+(defun parameter-reset (param)
+  (setf @param.value @param.default)
+)
+
+;;MGOB タイトルクラス
+(defstruct (title (:include object)) 
+  title-label
+  start-button
+  start-callback
+  )
+(defun new-title ( title-name start-callback )
+
+  (let (
+		title-label-w 
+		title-label-h
+		title-label-x
+		title-label-y
+		title-label
+	    start-button
+		r-title
+		)
+
+	(setq title-label-w 10)
+	(setq title-label-h 3)
+	(setq title-label-x (truncate (- (/ *screen-w* 2) (/ title-label-w 2))))
+	(setq title-label-y (truncate (- (/ *screen-h* 2) (/ title-label-h 2))))
 
 
+	(setq title-label
+		  (new-label 
+		   title-label-x
+		   title-label-y
+		   title-label-w
+		   title-label-h
+		   title-name)
+		  );set label
 
+	(setq start-button
+		  (new-button 
+		   (+ title-label-x 2)
+		   (+ title-label-y 5)
+		   6
+		   3
+		   "[S]tart"
+		   's
+		   #'start-callback-default
+		   )
+		  )
+
+	(setq r-title
+		  (make-title
+		   :title-label title-label
+		   :start-button start-button
+		   :start-callback start-callback
+		   ))
+
+	(setf (button-tag start-button) r-title)
+
+	r-title
+
+	);let
+)
+;;スタート押下時デフォルト関数
+;;タイトルラベルやボタンのUIを隠すだけにしているので、
+;;removeする処理を加える必要があるが未実装
+(defun start-callback-default(button)
+  (let (title-obj)
+	(setq title-obj (button-tag button))
+	(setf (label-visible (title-title-label title-obj)) nil);;title hidden
+	(setf (button-visible (title-start-button title-obj)) nil);;start hidden
+	(label-visible (title-title-label title-obj) )
+	(funcall (title-start-callback title-obj))
+	)
+)
 
 ;;メニュークラス
 ;;グリッドの派生
@@ -842,3 +961,375 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 ;; 				 key
 ;; 				 callback-push-cell
 ;; 				 )
+
+
+;;レースクラス
+;;レースゲームのマップとそのオブジェクト表示管理
+(defstruct (race (:include label)) x y w h minimap curse-length minimap-player-obj 
+		   player-position 
+		   event-vec
+		   enemy-vec
+		   curse-square-left
+		   curse-square-right
+		   curse-line-left-x
+		   curse-line-right-x
+		   )
+(defstruct (minimap (:include label)) x y w h)
+(defstruct (race-event  (:include object) )
+			 start-pos
+			 end-pos
+			 type
+			 x-pos
+			 finish
+			 )
+
+(defun new-race ( x y w h minimap-x minimap-y minimap-w minimap-h curse-length )
+
+
+  (new-label minimap-x minimap-y minimap-w minimap-h "")
+  (new-label minimap-x minimap-y 3 3 "G")
+  (new-label minimap-x (+ minimap-y minimap-h) 3 3 "S")
+  (new-label x y w h "")
+
+
+  (let (minimap race label-minimap-player)
+
+	(setq label-minimap-player (new-label minimap-x (+ minimap-y minimap-h) 3 3 "p"))
+
+
+	(setq minimap (make-minimap :x minimap-x :y minimap-y :w minimap-w :h minimap-h))
+
+
+	(setq race
+		  (make-race :x x :y y :w w :h h
+			   :minimap
+			   minimap
+			   :curse-length
+			   curse-length
+			   :minimap-player-obj
+			   label-minimap-player
+			   :player-position
+			   0
+			   :event-vec
+			   (new-vec)
+			   :enemy-vec
+			   (new-vec)
+			   :curse-square-left
+			   (new-square (+ x 2) y 1 h)
+			   :curse-square-right
+			   (new-square (- (+ x w) 3) y 1 h)
+			   :curse-line-left-x 
+			   0
+			   :curse-line-right-x
+			   w
+			   )
+		  )
+
+
+	(race-init race)
+
+	race
+	);let
+
+)
+
+;;レース状態初期化
+(defun race-init(race)
+  (setf (race-player-position race) 0)
+  (race-clear-all-event race)
+  (race-update-curse race)
+  (race-update-minimap race)
+)
+
+;;レース進行
+(defun race-forward (race forward-m)
+
+
+	;;位置更新
+	(+= (race-player-position race) forward-m)
+	(if (> (race-player-position race) (race-curse-length race))
+		(setf (race-player-position race) (race-curse-length race))
+		)
+	
+	;;位置イベント処理
+	(race-update-curse race)
+
+
+	;;ミニマップ更新
+	(race-update-minimap race)
+	
+)
+
+
+;;コース状態更新
+(defun race-update-curse (race)
+
+  (let (recent-event-number recent-event target-square)
+	;;コース
+	(setq recent-event-number (race-get-recent-event-number race))
+	;;イベントが無ければ更新しない
+	(if (equal recent-event-number nil) (return-from race-update-curse) )
+
+	(setq recent-event (elt (race-event-vec race) recent-event-number) )
+
+
+	;;未処理のイベントが後方にある場合はそのイベントでマップを作る
+	;;前方にある場合はまだ処理しない
+	(if (< (race-event-start-pos recent-event) (race-player-position race))
+		t
+		(return-from race-update-curse)
+		)
+
+	;;未処理のイベントが前方にある場合は後方の消化済みのイベントを処理する
+	;;未処理のイベントが画面内にある場合は両方のイベントを使用する
+
+	;;ライン引き（矩形で表現）
+	;;暫定的に後方イベントだけ処理
+
+	(if (equal (race-event-type recent-event) 'left-line)
+		(race-event-set-left-line race recent-event))
+	(if (equal (race-event-type recent-event) 'right-line)
+		(race-event-set-right-line race recent-event))
+	(if (equal (race-event-type recent-event) 'enemy-yellow)
+		(race-event-appear-enemy race recent-event))
+
+	;;イベントフラグ
+	(setf (race-event-finish recent-event) t)
+
+	;;再帰で同時時間の発生イベントを処理
+	(race-update-curse race)
+
+  );let
+
+)
+
+(defun race-event-set-left-line (race event)
+  (setf (race-curse-line-left-x race) (race-event-x-pos event))
+  (race-event-set-line race event (race-curse-square-right race))
+)
+
+(defun race-event-set-right-line (race event)
+  (setf (race-curse-line-right-x race)  (race-event-x-pos event))
+  (race-event-set-line race event (race-curse-square-left race))
+)
+
+(defun race-event-set-line (race event square)
+  (setf (square-x square ) 
+		(+ (label-x race) (race-event-x-pos event)))
+  
+)
+
+;;イベント：敵出現
+(defun race-event-appear-enemy (race event)
+  (let (enemy-vec)
+	(setq enemy-vec (race-enemy-vec race))
+	(vec-push enemy-vec 
+			   (new-label (+ (label-x race) (race-event-x-pos event))
+						  (label-y race)
+						  3 3 "e"))
+	);let
+)
+
+;;ミニマップ更新
+(defun race-update-minimap (race)
+  (let (player minimap)
+		(setq player (race-minimap-player-obj race))
+		(setq minimap (race-minimap race))
+		(setf (label-y player)
+			  (+ (label-y minimap)
+			  (truncate
+			   (- (label-h minimap)
+				  (*
+				   (/ (race-player-position race) (race-curse-length race))
+				   (label-h minimap)))
+			   );truncate
+			  ));setf
+		);let
+)
+
+;;コースイベント設定
+;;カーブの開始、直線コースなど、イベントを数回セットすることでコース表現をする
+(defun race-add-event ( race start end type x)
+  (let (event-vec)
+	(setq event-vec (race-event-vec race) )
+	(vec-push event-vec
+			  (make-race-event
+			   :start-pos start
+			   :end-pos end
+			   :type type
+			   :x-pos x
+			   ))
+	);let
+)
+
+(defun race-clear-all-event (race)
+  (setf (race-event-vec race) (new-vec))
+)
+
+;;未処理の最初のイベントの番号を返す
+(defun race-get-recent-event-number (race)
+
+  (let (vec event number)
+	(setq vec (race-event-vec race) )
+
+	(for (i 0 (length vec))
+	  (setq event (vec-get vec i))
+	  (setq number i)
+	  (if (not (race-event-finish event))
+		  (return-from race-get-recent-event-number i)
+		  );if
+	  );for
+
+;;     number
+
+	nil
+	);let
+
+)
+
+
+
+
+;;SHOOTINGクラス
+;;STGのオブジェクトと敵の配置管理
+(defstruct (shooting (:include object)) 
+  x y w h  
+  vec-obj
+  )
+
+(defstruct (shooting-obj(:include object))
+  x y w h 
+  type
+  speed
+  angle 
+  label
+  hp 
+  no-damage ;;ダメージを受けない
+  atack-body ;;衝突の際にダメージを与える
+  dead-effect ;;死亡エフェクトフラグ
+)
+
+
+;; (defstruct (race-event  (:include object) )
+;; 			 start-pos
+;; 			 end-pos
+;; 			 type
+;; 			 x-pos
+;; 			 finish
+;; 			 )
+
+(defun new-shooting ( x y w h )
+
+  (let (r-shooting vec-obj)
+	(setq vec-obj (new-vec))
+	(setq r-shooting 
+		  (make-shooting
+		   :x x
+		   :y y 
+		   :w w 
+		   :h h
+		   :vec-obj vec-obj
+		   )
+		  )
+
+
+
+	r-shooting
+
+	);let
+
+)
+
+(defun new-shooting-obj (shooting x y w h type speed angle obj-str)
+  (let (r-obj)
+
+
+	(setq r-obj
+		  (make-shooting-obj 
+		   :x x
+		   :y y
+		   :w w
+		   :h h
+		   :type type
+		   :label (new-label x y w h obj-str)
+		   :speed speed
+		   :angle angle
+		   :hp 1
+		   :no-damage nil
+		   :atack-body nil
+		   :dead-effect nil
+		   )
+		  )
+
+		  (vec-push @shooting.vec-obj r-obj)
+
+		  r-obj 
+	)
+
+)
+
+
+(defun shooting-move-obj (obj x y)
+  (+= @obj.x x)
+  (+= @obj.y y)
+  (setf @obj.label.x @obj.x)
+  (setf @obj.label.y @obj.y)
+)
+
+(defun radian-to-x ( angle )
+  (cos (* (/ angle 180) pi))
+)
+(defun radian-to-y ( angle )
+  (cos (* (/ angle 180) pi))
+)
+
+(defun shooting-forward (shooting)
+  ;;位置更新
+  (for (i 0 (length @shooting.vec-obj))
+	(let (obj)
+	  (setq obj (vec-get @shooting.vec-obj i))
+;; 	  (shooting-move-obj obj 0 (- @obj.speed))
+	  (shooting-move-obj obj 0 (- @obj.speed))
+	  (vec-set @shooting.vec-obj i obj)
+	  );let
+	);for
+)
+
+;;指定のタイプのオブジェクト同士の衝突をチェックし、ダメージ処理を行なう
+;;このメソッドでは衝突した双方にダメージを与える
+(defun damage-conflict-object ( shooting type1 type2 )
+  
+  (let (vec1 vec2 obj1 obj2)
+	(setq vec1 (shooting-get-vec-object shooting type1))
+	(setq vec2 (shooting-get-vec-object shooting type2))
+
+	(for (i 0 (length vec1))
+	  (for (j 0 (length vec2))
+		(setq obj1 (vec-get vec1 i))
+		(setq obj2 (vec-get vec2 j))
+		(cond 
+		  ((hitcheck-rect-in-rect 
+			@obj1.x @obj1.y @obj1.w @obj1.h
+			@obj2.x @obj2.y @obj2.w @obj2.h)
+		   (-= @obj1.hp 1)
+		   (-= @obj2.hp 1)
+		   )
+		  );cond
+		
+		));for
+
+	);let
+)
+
+;;指定のタイプのオブジェクト配列を取得
+(defun shooting-get-vec-object ( shooting type )
+  (remove-if #'(lambda (obj) (not (equal @obj.type type))) @shooting.vec-obj)
+)
+
+;;指定のオブジェクトをリストから除外、UIも削除する
+(defun shooting-remove-obj (shooting obj)
+  (gob-remove @obj.label)
+  (vec-remove-if @shooting.vec-obj obj)
+)
+
+

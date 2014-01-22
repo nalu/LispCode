@@ -2,10 +2,14 @@ enchant();
 
 window.onload = function() {
 
-	var game_title_str = "<@lisp-rough-title>";
+	var game_title_str = "hilow";
 
 	//列挙型定義
-	<@lisp-rough-enum>
+	var MODE = {
+HIDE : 0, 
+OPEN : 1, 
+};
+
 
 
 
@@ -245,7 +249,7 @@ window.onload = function() {
 
 
 	//メインタスクの作成
-	var start_obj = new <@lisp-rough-title>;
+	var start_obj = new hilow;
 	start_obj.game_init();
 
 
@@ -288,7 +292,7 @@ window.onload = function() {
 
 
 	
-    <@lisp-rough-title> = Class.create
+    hilow = Class.create
 
     ( TaskBase,{
 
@@ -299,10 +303,38 @@ window.onload = function() {
 			TaskBase.call(this); //スーパークラスのコンストラクタ呼び出し
 
 			//変数宣言
-			<@lisp-rough-variable-declar>
+			var card_a_obj;
+var card_b_obj;
+var message_label;
+var button_high;
+var button_low;
+var button_retry;
+var button_quit;
+var label_money;
+var card_array;
+var a_card;
+var b_card;
+var mode;
+var select;
+var money;
+
 
 			//変数初期化
-			<@lisp-rough-variable-initialize>
+			this.card_a_obj = makeLabel(30, 60, 50, 70,  "a ", "#ffffff", "20px Palatino" );
+this.card_b_obj = makeLabel(110, 60, 50, 70,  "b ", "#ffffff", "20px Palatino" );
+this.message_label = makeLabel(30, 20, 130, 30,  "message", "#ffffff", "20px Palatino" );
+this.button_high = new Button( 30, 140, 50, 30, "[H]igh", 'H', this.push_high, color_button_default);
+this.button_low = new Button( 30, 170, 50, 30, "[L]ow", 'L', this.push_low, color_button_default);
+this.button_retry = new Button( 110, 140, 50, 30, "[R]try", 'R', this.push_retry, color_button_default);
+this.button_quit = new Button( 110, 170, 50, 30, "[Q]uit", 'Q', this.push_quit, color_button_default);
+this.label_money = makeLabel(180, 60, 70, 30,  "money", "#ffffff", "20px Palatino" );
+this.card_array = [];
+this.a_card = 1;
+this.b_card = 1;
+this.mode = HIDE;
+this.select = "";
+this.money = 100;
+
 			
 
 		},
@@ -321,7 +353,382 @@ window.onload = function() {
 		},
 
 		//関数定義
-		<@lisp-rough-method-define>
+		grid_get_data_array:function(grid)
+ 
+{
+/*
+(((MAP 'LIST (LAMBDA (X)
+      (CELL-DATA X)
+     )
+     (GRID-CELL-ARRAY GRID)
+    )
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+grid_check_match_r_horizontal:function(grid, cell, require_num, test, match_list)
+ 
+{
+/*
+(((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 0 REQUIRE-NUM TEST MATCH-LIST)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+grid_check_match_r_vertical:function(grid, cell, require_num, test, match_list)
+ 
+{
+/*
+(((GRID-CHECK-MATCH-R GRID CELL NIL 0 0 1 REQUIRE-NUM TEST MATCH-LIST)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+grid_check_match_r_slanting:function(grid, cell, require_num, test, match_list)
+ 
+{
+/*
+(((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 1 REQUIRE-NUM TEST MATCH-LIST)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+grid_check_match_r:function(grid, cell, before_cell, match_count, move_x, move_y, require_num, test, match_list)
+ 
+{
+/*
+(((LET ((RECURSIVE-FINISH NIL)
+     )
+     (IF (NOT (EQUAL (CELL-DATA CELL)
+        NIL)
+      )
+      (FUNCALL TEST (CELL-DATA CELL)
+      )
+     )
+     (IF (NOT (EQUAL BEFORE-CELL NIL)
+      )
+      (IF (AND (EQUAL (FUNCALL TEST (CELL-DATA CELL)
+         )
+         T)
+        (EQUAL (FUNCALL TEST (CELL-DATA BEFORE-CELL)
+         )
+         T)
+       )
+       (SETQ MATCH-COUNT (+ MATCH-COUNT 1)
+       )
+       (SETQ RECURSIVE-FINISH T)
+      )
+     )
+     (IF (EQUAL RECURSIVE-FINISH NIL)
+      (LET (NEXT-CELL)
+       (SETQ NEXT-CELL (GRID-GET-CELL-FROM-CELL GRID CELL MOVE-X MOVE-Y)
+       )
+       (IF (AND (NOT (EQUAL NEXT-CELL NIL)
+         )
+         (NOT (EQUAL (CELL-DATA NEXT-CELL)
+           NIL)
+         )
+        )
+        (SETQ MATCH-COUNT (GRID-CHECK-MATCH-R GRID NEXT-CELL CELL MATCH-COUNT MOVE-X MOVE-Y REQUIRE-NUM TEST MATCH-LIST)
+        )
+       )
+       (IF (>= MATCH-COUNT (- REQUIRE-NUM 1)
+        )
+        (VEC-PUSH MATCH-LIST (CELL-DATA CELL)
+        )
+       )
+      )
+     )
+     MATCH-COUNT)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+game_init:function()
+ 
+{
+/*
+(((SETQ *MODE* HIDE)
+    (MODE-HIDE)
+    (UPDATE-MONEY)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+check_highlow:function(open_n, hide_n)
+ 
+{
+/*
+(((LET (VAL)
+     (COND ((= OPEN_N HIDE_N)
+       (SETQ VAL 'DRAW)
+      )
+      ((< OPEN_N HIDE_N)
+       (SETQ VAL 'LOW)
+      )
+      ((> OPEN_N HIDE_N)
+       (SETQ VAL 'HIGH)
+      )
+     )
+     VAL)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+get_card_random_number:function()
+ 
+{
+/*
+(((+ (RANDOM 12)
+     1)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+mode_hide:function()
+ 
+{
+/*
+(((SETQ *A-CARD* X)
+    (SETQ *B-CARD* (GET-CARD-RANDOM-NUMBER)
+    )
+    (SET-TEXT *MESSAGE-LABEL* HIGH or LOW?)
+    (VISIBLE-BUTTON *BUTTON-HIGH* T)
+    (VISIBLE-BUTTON *BUTTON-LOW* T)
+    (VISIBLE-BUTTON *BUTTON-RETRY* NIL)
+    (SET-TEXT *CARD-A-OBJ* *A-CARD*)
+    (SET-TEXT *CARD-B-OBJ* *B-CARD*)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+mode_open:function()
+ 
+{
+/*
+(((SETQ *A-CARD* (GET-CARD-RANDOM-NUMBER)
+    )
+    (VISIBLE-BUTTON *BUTTON-HIGH* NIL)
+    (VISIBLE-BUTTON *BUTTON-LOW* NIL)
+    (VISIBLE-BUTTON *BUTTON-RETRY* T)
+    (LET (HIGHLOW)
+     (SETQ HIGHLOW (CHECK-HIGHLOW *A-CARD* *B-CARD*)
+     )
+     (COND ((EQUAL HIGHLOW 'DRAW)
+       (SET-TEXT *MESSAGE-LABEL* open >>>>>> DRAW)
+      )
+      ((EQUAL HIGHLOW *SELECT*)
+       (SET-TEXT *MESSAGE-LABEL* open >>>>>> WIN!!)
+       (WIN)
+      )
+      (T (SET-TEXT *MESSAGE-LABEL* open >>>>>> LOSE..)
+       (LOSE)
+      )
+     )
+    )
+    (SET-TEXT *CARD-A-OBJ* *A-CARD*)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+push_quit:function()
+ 
+{
+/*
+(((SETQ *QUIT* 1)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+push_retry:function()
+ 
+{
+/*
+(((SETQ *MODE* HIDE)
+    (MODE-HIDE)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+push_high:function()
+ 
+{
+/*
+(((SETQ *SELECT* 'HIGH)
+    (SETQ *MODE* 'OPEN)
+    (MODE-OPEN)
+    (-= (SLOT-VALUE *LABEL-MONEY* 'Y)
+     1)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+push_low:function()
+ 
+{
+/*
+(((SETQ *SELECT* 'LOW)
+    (SETQ *MODE* 'OPEN)
+    (MODE-OPEN)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+win:function()
+ 
+{
+/*
+(((SETQ *MONEY* (+ *MONEY* 10)
+    )
+    (UPDATE-MONEY)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+lose:function()
+ 
+{
+/*
+(((SETQ *MONEY* (- *MONEY* 10)
+    )
+    (UPDATE-MONEY)
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+update_money:function()
+ 
+{
+/*
+(((LET (STR)
+     (SETQ STR (FORMAT NIL $ ~d *MONEY*)
+     )
+     (SET-TEXT *LABEL-MONEY* STR)
+    )
+   )
+  )
+ 
+
+lisp >>> target
+
+NIL
+
+*/
+},
+
+
 
     });
 

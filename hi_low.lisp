@@ -13,23 +13,19 @@
   (def-v *button-quit* (new-button 11 17 5 3 "[Q]uit" 'q #'push-quit))
   (def-v *label-money* (new-label 18 6 7 3 "money"))
   
-  (def-v *card-array* (make-array 2))
+;;   (def-v *card-array* (make-array 2))
+  (def-v *card-array* (new-vec 2))
+  
+
+  (def-enum 'mode '(hide open))
   
   (def-v *a-card* 1 )
   (def-v *b-card* 1)
-  (def-v *mode* 'hide )
+  (def-v *mode* hide )
   (def-v *select* "")
   (def-v *money* 100)
+
   
-  ;add object
-;;   (setq *card-a-obj* (new-label 3 6 5 7 "a "))
-;;   (setq *card-b-obj* (new-label 11 6 5 7 "b "))
-;;   (setq *message-label* (new-label 3 2 13 3 "message"))
-;;   (setq *button-high* (new-button 3 14 5 3 "[H]igh" 'h #'push-high))
-;;   (setq *button-low* (new-button 3 17 5 3 "[L]ow" 'l #'push-low))
-;;   (setq *button-retry* (new-button 11 14 5 3 "[R]try" 'r #'push-retry))
-;;   (setq *button-quit* (new-button 11 17 5 3 "[Q]uit" 'q #'push-quit))
-;;   (setq *label-money* (new-label 18 6 7 3 "money"))
 
 );end-variable
 
@@ -44,7 +40,7 @@
 
 ;(defmethod game-init()
 (def-f game-init()
-  (setq *mode* 'hide)  
+  (setq *mode* hide)  
 
   (mode-hide)
   (update-money)
@@ -110,7 +106,7 @@
 
 
 (def-f push-retry()
-  (setq *mode* 'hide )
+  (setq *mode* hide )
   (mode-hide)
 )
 
@@ -118,6 +114,9 @@
  (setq *select* 'high )
  (setq *mode* 'open)
  (mode-open)
+;;  (setf (label-y *label-money*) (- (label-y *label-money*) 1))
+;;  (setf @*label-money*.y (- @*label-money*.y 1))
+ (-= @*label-money*.y 1)
 )
 
 (def-f push-low()

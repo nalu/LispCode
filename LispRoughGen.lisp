@@ -44,11 +44,14 @@ Lisp Rough対応コードを解析して別言語のコードを生成する
     ) 
 )
 
-(defun generate-source (seed-filename game-filename game-name generate-filename )
+;;シンボルから必要な関数をセットするためのオブジェクト
+;;change-token時に使用
+
+(defun generate-source (seed-filename game-filename game-name generate-filename generate-symbol )
   (setq *game-name* game-name)
   (setq *game-filename* game-filename)
   (let ((loadstr (load-seed-code seed-filename)))
-    (setq loadstr (change-token loadstr game-filename game-name));トークン変換
+    (setq loadstr (change-token loadstr game-filename game-name generate-symbol));トークン変換
     (setq loadstr (escape-childa-all loadstr)) ; escape childa
 	(setq loadstr (convert-return-all-crlf loadstr)) ; 改行コード揃え（全newlineをreturnへ）
 	(create-directory (format nil "./generate-~a/" game-name));
@@ -66,8 +69,24 @@ Lisp Rough対応コードを解析して別言語のコードを生成する
 )
 
 ;シードコード内のトークンに適切な値を埋め込み。
-;現状ではタイトル、変数宣言、関数定義の３つ
-(defun change-token (source game-filename game-name)
+;現状ではタイトル、変数宣言・初期化、関数宣言・定義、列挙型定義の５つ
+;トークンが無くても存在するものだけについて埋め込みを行なう
+#|
+<@lisp-rough-title>
+<@lisp-rough-variable-declar>
+<@lisp-rough-variable-initialize>
+<@lisp-rough-method-declar>
+<@lisp-rough-method-define>
+<@lisp-rough-enum>
+|#
+(defun change-token (source game-filename game-name generate-symbol)
+  
+  ;;変換ターゲットに応じた関数セットを読み込む
+  (if (equal generate-symbol 'winapi)
+	  (load "./convert_winapi.lisp"))
+  (if (equal generate-symbol 'enchant-js)
+	  (load "./convert_enchantjs.lisp"))
+  
   ;タイトル
   (setq source (cl-ppcre:regex-replace-all "<@lisp-rough-title>" source game-name))
   ;変数宣言
@@ -96,6 +115,12 @@ Lisp Rough対応コードを解析して別言語のコードを生成する
  
 )
 
+;;コンバートタイプを示す連想リスト
+;;環境ごとの適切な関数を記述しておく
+;; '( 
+  
+;;   ( enchant-js . convert-v-declar )
+;; )
 
 ;指定ゲームソースファイルの変数宣言を全て抽出し、C++の変数宣言部のソース文字列を作成
 (defun make-variable-str ( filename )
@@ -121,6 +146,7 @@ Lisp Rough対応コードを解析して別言語のコードを生成する
    #\newline)
 )
 
+;;関数定義の文字列をファイルパスから作成
 (defun make-method-define-str (filename game-name)
   (load filename)
 
@@ -216,20 +242,35 @@ test
 ;C++用のコードを生成
 ;lispのゲームファイルパスと、ゲームのタイトルを入力して実行する
 (defun generate-cpp ( game-filename game-title )
-  (generate-source "c:/Lisp/LispCode/seed-code/win/seed-win-main.cpp" game-filename game-title "main.cpp")
-  (generate-source "c:/Lisp/LispCode/seed-code/win/seed-win-game.h" game-filename game-title (format nil "~a.h" game-title))
+  (generate-source "c:/Lisp/LispCode/seed-code/win/seed-win-main.cpp" game-filename game-title "main.cpp" 'winapi)
+  (generate-source "c:/Lisp/LispCode/seed-code/win/seed-win-game.h" game-filename game-title (format nil "~a.h" game-title) 'winapi)
 )
 
 ;hi_lowを生成
-(defun generate-hilow()
+(defun generate-hilow-cpp()
   (generate-cpp "c:/Lisp/LispCode/hi_low.lisp" "hilow")
-  
 )
 
 ;jankを生成
 (defun generate-jank()
   (generate-cpp "c:/Lisp/LispCode/jank.lisp" "jank")
 )
+
+
+;JS用のコードを生成
+;lispのゲームファイルパスと、ゲームのタイトルを入力して実行する
+(defun generate-js ( game-filename game-title )
+  (generate-source "c:/Lisp/LispCode/seed-code/enchant/main.js" game-filename game-title "main.js" 'enchant-js)
+
+;;ヘッダはいらない
+;;   (generate-source "c:/Lisp/LispCode/seed-code/win/seed-win-game.h" game-filename game-title (format nil "~a.h" game-title))
+)
+;;hilow-jsを生成
+;hi_lowを生成
+(defun generate-hilow-js()
+  (generate-js "c:/Lisp/LispCode/hi_low.lisp" "hilow")
+)
+
 
 ;改行コードをすべてCRLF( return + newline) に揃えた文字列を返す
 ;windowsはCRLFなので重用
@@ -246,163 +287,163 @@ test
 
 ;--------------------------------- Convert C++  ---------------------------------
 
-;変数名、初期値からなるdef-vで定義された値を、C++のクラス宣言部用にコンバートする
-(defun convert-v-declar ( def-v-obj )
+;; ;変数名、初期値からなるdef-vで定義された値を、C++のクラス宣言部用にコンバートする
+;; (defun convert-v-declar ( def-v-obj )
 
-  (let (type-str var-name)
-    ;これでシンボルのタイプを出せる。実際にコードが実行済みの必要があるが、
-	;def-vは実行時にデータを配列にいれるので問題ない
-	(setq type-str 
-		  (convert-typename-lisp-to-cpp
-		   (type-of (eval (car def-v-obj)))) )
-	(setq var-name (car def-v-obj))
+;;   (let (type-str var-name)
+;;     ;これでシンボルのタイプを出せる。実際にコードが実行済みの必要があるが、
+;; 	;def-vは実行時にデータを配列にいれるので問題ない
+;; 	(setq type-str 
+;; 		  (convert-typename-lisp-to-cpp
+;; 		   (type-of (eval (car def-v-obj)))) )
+;; 	(setq var-name (car def-v-obj))
 
-    ;C++はハイフン使えないのでアンダーバーに変換
-	;あとで関数にかえる
-	(setq var-name (convert-syntax-symbol-lisp-to-cpp var-name))
+;;     ;C++はハイフン使えないのでアンダーバーに変換
+;; 	;あとで関数にかえる
+;; 	(setq var-name (convert-syntax-symbol-lisp-to-cpp var-name))
 
-	(format nil "~a ~a;" type-str var-name); Label testlabel; のような宣言文字列を出力
-  )
-)
+;; 	(format nil "~a ~a;" type-str var-name); Label testlabel; のような宣言文字列を出力
+;;   )
+;; )
 
-;変数名、初期値からなるdef-vで定義された値から初期化コードにコンバートする
-;new のあとをコンバートできてない。コンストラクタを同対応させるかの仕様が必要。
-(defun convert-v-initialize ( def-v-obj )
-  (format nil "this->~a = ~a;" 
-		  (convert-syntax-symbol-lisp-to-cpp (car def-v-obj)) ;変数名
- 		  (cpp-new-method (cadr def-v-obj)) ;初期化コードは次回バージョンでこうやる
-;		  (cadr def-v-obj);初期化コード
-		  )
-)
+;; ;変数名、初期値からなるdef-vで定義された値から初期化コードにコンバートする
+;; ;new のあとをコンバートできてない。コンストラクタを同対応させるかの仕様が必要。
+;; (defun convert-v-initialize ( def-v-obj )
+;;   (format nil "this->~a = ~a;" 
+;; 		  (convert-syntax-symbol-lisp-to-cpp (car def-v-obj)) ;変数名
+;;  		  (cpp-new-method (cadr def-v-obj)) ;初期化コードは次回バージョンでこうやる
+;; ;		  (cadr def-v-obj);初期化コード
+;; 		  )
+;; )
 
-;次回バージョンで実装予定。
-;CPP用初期化コードを生成する。クラスタイプから生成
-;new Button(gm, 0,1,"str", new Callback( multitype_func<hilow, &hilow::push_low>, this));)
-;というコード。
-(defun cpp-new-method (initialize-code)
+;; ;次回バージョンで実装予定。
+;; ;CPP用初期化コードを生成する。クラスタイプから生成
+;; ;new Button(gm, 0,1,"str", new Callback( multitype_func<hilow, &hilow::push_low>, this));)
+;; ;というコード。
+;; (defun cpp-new-method (initialize-code)
 
-  ;リストでなければそのまま返す
-  ;リストであれば先頭の１つが関数名なので、それをコンバートして実行
-  (if (equal 'CONS (type-of initialize-code))
-	  (cond
-		;new-button > new-button-cpp
-		((equal (car initialize-code) 'new-button) 
-		 (setf (elt initialize-code 0) 'new-button-cpp)
-		 (eval initialize-code))
+;;   ;リストでなければそのまま返す
+;;   ;リストであれば先頭の１つが関数名なので、それをコンバートして実行
+;;   (if (equal 'CONS (type-of initialize-code))
+;; 	  (cond
+;; 		;new-button > new-button-cpp
+;; 		((equal (car initialize-code) 'new-button) 
+;; 		 (setf (elt initialize-code 0) 'new-button-cpp)
+;; 		 (eval initialize-code))
 	 
-		;;ここは同じ構成なので、alist使ってまとめたい
-		;new-button > new-button-cpp
-		((equal (car initialize-code) 'new-label) 
-		 (setf (elt initialize-code 0) 'new-label-cpp)
-		 (eval initialize-code))
+;; 		;;ここは同じ構成なので、alist使ってまとめたい
+;; 		;new-button > new-button-cpp
+;; 		((equal (car initialize-code) 'new-label) 
+;; 		 (setf (elt initialize-code 0) 'new-label-cpp)
+;; 		 (eval initialize-code))
 		
-		( t initialize-code)
-		)
+;; 		( t initialize-code)
+;; 		)
 
-	  ;not if
-	  initialize-code
-  )
-)
+;; 	  ;not if
+;; 	  initialize-code
+;;   )
+;; )
 
-;;new-buttonをCPP用にコンバート
-(defun new-button-cpp ( x y w h title key call)
-  (format nil 
-		  "new Button(gm, ~d, ~d, \"~a\"\, new Callback( multitype_func<~a, &~a::~a>, this))  " 
-		  x y title *game-name* *game-name* 
-		  (convert-syntax-symbol-lisp-to-cpp (function-name call)))
-)
+;; ;;new-buttonをCPP用にコンバート
+;; (defun new-button-cpp ( x y w h title key call)
+;;   (format nil 
+;; 		  "new Button(gm, ~d, ~d, \"~a\"\, new Callback( multitype_func<~a, &~a::~a>, this))  " 
+;; 		  x y title *game-name* *game-name* 
+;; 		  (convert-syntax-symbol-lisp-to-cpp (function-name call)))
+;; )
 
-;;new-labelをCPP用にコンバート
-;;ex : new Label(gm, x,y,"a", RGB(0,0,0),RGB(100,100,200),16) ;
+;; ;;new-labelをCPP用にコンバート
+;; ;;ex : new Label(gm, x,y,"a", RGB(0,0,0),RGB(100,100,200),16) ;
 
-(defun new-label-cpp ( x y w h title)
-  (format nil 
-		  "new Label(gm, ~d, ~d, \"~a\"\, RGB(0,0,0), RGB(100,100,200), 16 ) " 
-		  x y title
-		  )
-)
-
-
-;関数名をクラス宣言部用にコンバート
-(defun convert-f-declar ( def-f-obj )
-  (format nil "void ~a(~a);"
-		  (convert-syntax-symbol-lisp-to-cpp  (car def-f-obj)) ;関数名
-		  (convert-syntax-symbol-lisp-to-cpp
-		   (convert-parameter-list-to-string (cadr def-f-obj))
-		   );引数
-		  )
-)
-
-;関数名をクラス定義部用にコンバート
-(defun convert-f-define ( class-name def-f-obj )
-  (let (func-name param-name body-source )
-	(setq func-name (car def-f-obj))
-	(setq param-name (cadr def-f-obj))
-	(setq body-source (cddr def-f-obj))
-
-	;C++構文ルールように変換
-	(setq func-name (convert-syntax-symbol-lisp-to-cpp func-name))
-	(setq param-name
-		  (convert-syntax-symbol-lisp-to-cpp
-		   (convert-parameter-list-to-string
-			param-name)))
+;; (defun new-label-cpp ( x y w h title)
+;;   (format nil 
+;; 		  "new Label(gm, ~d, ~d, \"~a\"\, RGB(0,0,0), RGB(100,100,200), 16 ) " 
+;; 		  x y title
+;; 		  )
+;; )
 
 
-	(format nil "void ~a::~a(~a)~%{~%/*~%~a~%*/~%}~%" 
-			class-name
-			func-name ;関数名
-			param-name;引数
-			body-source);本体
-	)
-)
+;; ;関数名をクラス宣言部用にコンバート
+;; (defun convert-f-declar ( def-f-obj )
+;;   (format nil "void ~a(~a);"
+;; 		  (convert-syntax-symbol-lisp-to-cpp  (car def-f-obj)) ;関数名
+;; 		  (convert-syntax-symbol-lisp-to-cpp
+;; 		   (convert-parameter-list-to-string (cadr def-f-obj))
+;; 		   );引数
+;; 		  )
+;; )
 
-;列挙型をコンバート
-;; enum HAND{
-;; 	GOO,
-;; 	CHOKI,
-;; 	PER
-;; };
-(defun convert-enum ( enum-obj )
-  (format nil "enum ~a{~%~a};"
-		  (car enum-obj)
-		  (concat-string-delimita 
-		   (map 'list (lambda (x) (format nil "~a, "  x)) (cadr enum-obj))
-		  #\newline)
-;; 		  (cadr enum-obj)
-		  )
-)
+;; ;関数名をクラス定義部用にコンバート
+;; (defun convert-f-define ( class-name def-f-obj )
+;;   (let (func-name param-name body-source )
+;; 	(setq func-name (car def-f-obj))
+;; 	(setq param-name (cadr def-f-obj))
+;; 	(setq body-source (cddr def-f-obj))
+
+;; 	;C++構文ルールように変換
+;; 	(setq func-name (convert-syntax-symbol-lisp-to-cpp func-name))
+;; 	(setq param-name
+;; 		  (convert-syntax-symbol-lisp-to-cpp
+;; 		   (convert-parameter-list-to-string
+;; 			param-name)))
 
 
-;パラメータのリストをカンマ区切りの文字列に変換
-(defun convert-parameter-list-to-string (parameters-list)  
-  (concat-list-string
-   (map 'list (lambda (x) (format nil "int ~a "  x)) parameters-list)) 
+;; 	(format nil "void ~a::~a(~a)~%{~%/*~%~a~%*/~%}~%" 
+;; 			class-name
+;; 			func-name ;関数名
+;; 			param-name;引数
+;; 			body-source);本体
+;; 	)
+;; )
+
+;; ;列挙型をコンバート
+;; ;; enum HAND{
+;; ;; 	GOO,
+;; ;; 	CHOKI,
+;; ;; 	PER
+;; ;; };
+;; (defun convert-enum ( enum-obj )
+;;   (format nil "enum ~a{~%~a};"
+;; 		  (car enum-obj)
+;; 		  (concat-string-delimita 
+;; 		   (map 'list (lambda (x) (format nil "~a, "  x)) (cadr enum-obj))
+;; 		  #\newline)
+;; ;; 		  (cadr enum-obj)
+;; 		  )
+;; )
+
+
+;; ;パラメータのリストをカンマ区切りの文字列に変換
+;; (defun convert-parameter-list-to-string (parameters-list)  
+;;   (concat-list-string
+;;    (map 'list (lambda (x) (format nil "int ~a "  x)) parameters-list)) 
   
-)
+;; )
 
-;関数名、変数名をC++で使えるようにシンタックス適応させる
-(defun convert-syntax-symbol-lisp-to-cpp (target)
-  (print target)
-  (setq target ( format nil "~a" target))
-  (setq target (replace-string-all target "-" "_"));ハイフンをアンダーバーに
-  (setq target (replace-string-all target "\\*" ""));アスタリスクを削除（エスケープしつつ）
-  (setq target (string-downcase target));小文字化
-  target
-  )
+;; ;関数名、変数名をC++で使えるようにシンタックス適応させる
+;; (defun convert-syntax-symbol-lisp-to-cpp (target)
+;;   (print target)
+;;   (setq target ( format nil "~a" target))
+;;   (setq target (replace-string-all target "-" "_"));ハイフンをアンダーバーに
+;;   (setq target (replace-string-all target "\\*" ""));アスタリスクを削除（エスケープしつつ）
+;;   (setq target (string-downcase target));小文字化
+;;   target
+;;   )
 
 
-;特定のタイプ名をC++用のクラス名に対応するように変換
-(defun convert-typename-lisp-to-cpp (target)
-  (setq target ( format nil "~a" target))
+;; ;特定のタイプ名をC++用のクラス名に対応するように変換
+;; (defun convert-typename-lisp-to-cpp (target)
+;;   (setq target ( format nil "~a" target))
   
-  (setq target (replace-string-all target "LABEL" "Label*"))
-  (setq target (replace-string-all target "BUTTON" "Button*"))
-  (setq target (replace-string-all target ".*INTEGER.*" "int"))
-  (setq target (replace-string-all target ".*STRING.*" "string"))
-  (setq target (replace-string-all target ".*VECTOR.*" "vector<int>"))
+;;   (setq target (replace-string-all target "LABEL" "Label*"))
+;;   (setq target (replace-string-all target "BUTTON" "Button*"))
+;;   (setq target (replace-string-all target ".*INTEGER.*" "int"))
+;;   (setq target (replace-string-all target ".*STRING.*" "string"))
+;;   (setq target (replace-string-all target ".*VECTOR.*" "vector<int>"))
 
-  target
-)
+;;   target
+;; )
 
 
 

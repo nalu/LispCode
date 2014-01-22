@@ -14,25 +14,15 @@
 
   
 
-;;   (def-v *button-player-goo* (new-button 3 14 5 3 "[G]oo" 'g #'push-goo))
-;;   (def-v *button-p-choki* (new-button 9 14 5 3 "[C]hoki" 'c #'push-choki))
-;;   (def-v *button-per* (new-button 15 14 5 3 "[P]er" 'p #'push-per))
    (def-v *label-enemy-hand*  (new-label 9 6 5 5 "???"))
  
   (def-enum 'hand '(goo choki per hand-max))
   (def-v *player-hand* goo)
   (def-v *enemy-hand* goo)
+  (def-v *button-restart* (new-button 20 18 5 3 "[R]estart" 'r #'push-restart))
+  (def-v *finish-game* nil)
 
-;;   (defparameter *grid-array* (make-array (* 3 3)));3x3のグリッド用配列用意
-
-;;   (def-v *button-grid-a1* (new-button 3 6 4 4 "a1" 'a #'push-grid))
-;;   (def-v *button-grid-a2* (new-button 7 6 4 4 "a2" 'a #'push-grid))
-;;   (def-v *button-grid-a2* (new-button 11 6 4 4 "a3" 'a #'push-grid))
-
-  
-;;   (def-v *grid* (new-grid 3 6 3 3))
-
-   (def-v *grid* (new-grid 3 6 3 3 4 4 
+  (def-v *grid* (new-grid 3 6 3 3 4 4 
 						   #'callback-make-cell-obj 
 						   #'callback-make-cell-data 
 						   #'callback-update-cell
@@ -75,19 +65,34 @@
 ;;セル押下時メソッド
 (def-f callback-push-cell (cell)
   (let (block)
-	(setq block (cell-data cell))
-	(set-hand block "o")
-	(grid-update *grid*)
-	;;enemy
- 	(enemy-hand)
-   ;;check
-   (if (check-win)
-	   (print "win"))
-   (if (check-lose)
-	   (print "lose"))
 
+	(setq block (cell-data cell))
+
+	(cond 
+	  ((not (equal (block-token block) nil) )
+		(print "token exist. your push other cell"))
+	  (*finish-game*
+	   (print "finish")
+	   )
+	  (t
+	   (set-hand block "o")
+	   ;;enemy
+	   (enemy-hand)
+	   (grid-update *grid*)
+	   ;;check
+	   (cond 
+		 ((check-win)
+		   (print "win")
+		   (setq *finish-game* t)
+		  )
+		 ((check-lose)
+		  (print "lose")
+		  (setq *finish-game* t))
+	   );check win lose
+	   );t
+	  );cond
    );let
-  
+	  
 )
 
 (defun game-start()
@@ -102,7 +107,7 @@
 
   ;グリッド配列をボタンで初期化
 
-
+  
   (update-money)
 
 )
@@ -111,6 +116,7 @@
 
 
 (def-f push-quit()
+  (print "quit")
   (setq *quit* 1)
 )
 
@@ -123,18 +129,18 @@
 )
 
 ;;グリッドボタン押下時
-(def-f push-grid (obj)
+;; (def-f push-grid (obj)
 
-  (print obj)
-  (set-hand obj "o")
-  ;;enemy
-   (enemy-hand)
-)
+;;   (print obj)
+;;   (set-hand obj "o")
+;;   ;;enemy
+;;    (enemy-hand)
+;; )
 
 
 ;;指定のグリッド番号に手をセット
 (def-f set-hand ( block hand  )
-  (setf (block-token block) "o")
+  (setf (block-token block) hand)
   
 )
 
@@ -144,8 +150,10 @@
 
   ;;単なるランダム
 
-  (let ((target-cell nil) (empty-cell-array nil) )
+  (let ((target-cell nil) (empty-cell-array nil) (block nil) (empty-cell) )
 	(setq empty-cell-array (get-empty-cell-array (grid-cell-array *grid*)))
+;; 	(setq empty-cell (grid-random-get-empty *grid*))
+	(setq empty-cell-array (get-can-put-cell-array))
 
 	(cond 
       ;打てる場所が無い
@@ -154,17 +162,25 @@
 	  ( t
 	   (setq target-cell (aref empty-cell-array (random (length empty-cell-array))))
 	   (print (format nil "computer hand is ~d,~d > x" (cell-x target-cell) (cell-y target-cell) ))
-	   (set-text (cell-obj target-cell) "x")
+	   (setq block (cell-data target-cell))
+	   (print block)
+	   (set-hand block "x")
 	   )
 	  )
 	);let
 
   )
 
+;;未配置のセルリストを取得
+(def-f get-can-put-cell-array()
+	(remove-if 
+	 #'(lambda(cell) (not (equal (block-token (cell-data cell)) nil)))
+			  (grid-cell-array *grid*)
+			  )
+)
+
 ;;勝敗チェック
 (def-f check-win()
-  ;;ここにはGridのシステム内のマッチを使いたい
-  ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
   (if
     (< 0 (length (grid-check-match *grid* 3 t t t #'match-check-o)))
 	t
@@ -173,8 +189,6 @@
 )
 ;;勝敗チェック
 (def-f check-lose()
-  ;;ここにはGridのシステム内のマッチを使いたい
-  ;;なので、DRMのシステムをLispRough側に移動させてからここをやる。
   (if
     (< 0 (length (grid-check-match *grid* 3 t t t #'match-check-x)))
 	t
@@ -208,5 +222,9 @@
   (setq *money* (- *money* 10))
   (update-money)
   (set-text *message-label*  "PIKO >>>>>> LOSE")
+)
+
+(def-f push-restart()
+  (game-start)
 )
 

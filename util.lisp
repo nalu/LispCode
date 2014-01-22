@@ -1,4 +1,5 @@
 (QL:QUICKLOAD :Alexandria);文字列ライブラリ
+(load "at-accessor.lisp")
 
 
 ;文字列リストの結合用concatenate
@@ -86,7 +87,11 @@
 (defun stoi (x)
   (read-from-string x)
 )
-
+(defmacro += (x y) `(setf ,x (+ ,x ,y)))
+(defmacro -= (x y) `(setf ,x (- ,x ,y)))
+(defmacro ++ (x) `(setf ,x (1+ ,x)))
+(defmacro -- (x) `(setf ,x (1- ,x)))
+(defmacro % (x y) `(mod ,x ,y))
 ;リストの中からランダムに取得
 (defun random-get( array )
   (aref array (random (length array)))
@@ -95,10 +100,12 @@
 ;;Vec
 ;;vectorを簡単定義
 ;;近年のプログラミングスタイルになるべく近づける仕様にしたい
-(defun new-vec ()
-;;   `(defparameter ,name (make-array 0 :fill-pointer t :adjustable t))
-  (make-array 0 :fill-pointer t :adjustable t)
+(defmethod new-vec (&optional (size 0))
+  (make-array size :fill-pointer t :adjustable t)
 )
+
+
+
 ;;vectorに追加
 (defun vec-push ( vec value )
   (vector-push-extend value vec)
@@ -111,3 +118,58 @@
 (defun vec-set ( vec index value )
   (setf (elt vec index) value )
 )
+
+;;削除して詰める。
+(defun vec-remove (vec index)
+  (delete
+   (elt vec index) 
+   vec
+   :count 1
+   :start index)
+)
+
+;;指定のオブジェクトを１つ削除
+(defun vec-remove-if (vec obj)
+  (delete
+   obj
+   vec
+   :count 1)
+)
+
+;;簡易for
+;;使い方
+;;(for (i 0 10)
+;;  (print i)
+;;  (if (= i 5)
+;;    (for-continue) ;continue
+;;     )
+;;  (print <= 4)
+;;)
+
+
+;;デクリメント処理もしたいが問題あったので中止
+;;問題の状態特定も時間の関係で未特定
+;;とりあえずインクリメントだけで使用
+(defmacro for ((var start end) &body body)
+  (let ((block-name (gensym "BLOCK")) 
+		(direction 'below) )
+
+;; 		(direction (if (> start end) 'above 'below)))
+;; 		(print direction)
+
+
+;; 	(if (> start end ) (setq direction 'above))
+;;  	`(if (> ,start ,end ) (setq ,direction 'above))
+    `(loop for ,var from ,start below ,end
+;;     `(loop for ,var from ,start ,direction ,end
+
+;;     `(loop for ,var from ,start ,(if (> `,start `,end) 'above 'below) ,end
+           do (block ,block-name
+                (flet ((for-continue ()
+                         (return-from ,block-name)))
+                  ,@body))))
+
+)
+
+
+
