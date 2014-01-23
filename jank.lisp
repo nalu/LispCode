@@ -84,38 +84,37 @@
 (def-f open-enemy-hand()
   (setq *enemy-hand* (random hand-max))
 
-  ;ラベルにセット
+  ;; ラベルにセット
   (let (str)
-	(cond
-	  ((eql *enemy-hand* goo) (setq str "goo"))
-	  ((eql *enemy-hand* choki) (setq str "choki"))
-	  ((eql *enemy-hand* per) (setq str "per"))
-	  )
-	(set-text *label-enemy-hand* str)
+  	(cond
+  	  ((eql *enemy-hand* goo) (setq str "goo"))
+  	  ((eql *enemy-hand* choki) (setq str "choki"))
+  	  ((eql *enemy-hand* per) (setq str "per"))
+  	  )
+  	(set-text *label-enemy-hand* str)
   )
 
-  ;勝敗判定
-
+  ;;win lose check
   (cond
-	((eql *player-hand* goo) 
-	 (cond
-	   ((eql *enemy-hand* goo) (draw))
-	   ((eql *enemy-hand* choki) (win))
-	   ((eql *enemy-hand* per) (lose))
-	   ))
-	((eql *player-hand* choki) 
-	 (cond
-	   ((eql *enemy-hand* goo) (lose))
-	   ((eql *enemy-hand* choki) (draw))
-	   ((eql *enemy-hand* per) (win))
-	   ))
-	((eql *player-hand* per) 
-	 (cond
-	   ((eql *enemy-hand* goo) (win))
-	   ((eql *enemy-hand* choki) (lose))
-	   ((eql *enemy-hand* per) (draw))
-	   ))
-	)
+  	((eql *player-hand* goo) 
+  	 (cond
+  	   ((eql *enemy-hand* goo) (draw))
+  	   ((eql *enemy-hand* choki) (win))
+  	   ((eql *enemy-hand* per) (lose))
+  	   ))
+  	((eql *player-hand* choki) 
+  	 (cond
+  	   ((eql *enemy-hand* goo) (lose))
+  	   ((eql *enemy-hand* choki) (draw))
+  	   ((eql *enemy-hand* per) (win))
+  	   ))
+  	((eql *player-hand* per) 
+  	 (cond
+  	   ((eql *enemy-hand* goo) (win))
+  	   ((eql *enemy-hand* choki) (lose))
+  	   ((eql *enemy-hand* per) (draw))
+  	   ))
+  	)
   
 
 
