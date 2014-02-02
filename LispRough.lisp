@@ -1210,14 +1210,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 
-;; (defstruct (race-event  (:include object) )
-;; 			 start-pos
-;; 			 end-pos
-;; 			 type
-;; 			 x-pos
-;; 			 finish
-;; 			 )
-
 (defun new-shooting ( x y w h )
 
   (let (r-shooting vec-obj)
@@ -1288,7 +1280,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (for (i 0 (length @shooting.vec-obj))
 	(let (obj)
 	  (setq obj (vec-get @shooting.vec-obj i))
-;; 	  (shooting-move-obj obj 0 (- @obj.speed))
 	  (shooting-move-obj obj 0 (- @obj.speed))
 	  (vec-set @shooting.vec-obj i obj)
 	  );let
@@ -1331,5 +1322,134 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (gob-remove @obj.label)
   (vec-remove-if @shooting.vec-obj obj)
 )
+
+
+
+
+
+
+;;Worldクラス
+;;Shootingと似た構成だが、親クラス的な立ち位置で設計しながら使っていく
+;;ターン毎のイベントとオブジェクトの登録や当たり判定に加え、
+;;WorldTypeに応じた動作を行なう
+;;Actionタイプならば、重力判定など
+;;タイプごとのオブジェクト生成メソッドを持つ
+;;
+(defstruct (world (:include object))
+  x y w h
+  vec-obj
+  bg-label
+)
+
+(defstruct (world-obj (:include object))
+  x y w h
+  type
+  label
+  speed
+  angle
+  hp
+  no-damage
+  dead-effect ;;死亡エフェクトフラグ
+)
+
+
+
+;;アクションワールド
+;;重力と地面を持つ
+;;１ターンに１度、gravity*weigthのｙ座標分だけ落下する
+(defstruct (action-world (:include world)) 
+  gravity
+  land-height
+  land-label
+  )
+
+(defstruct (action-obj(:include world-obj))
+  weight
+)
+
+
+(defun new-action-world ( x y w h gravity land-height)
+
+  (let (r-world vec-obj bg-label land-label)
+	(setq vec-obj (new-vec))
+	(setq bg-label  (new-label x y w h ""))
+	(setq land-label (new-label x (+ y (- h land-height)) w land-height ""))
+	(setq r-world 
+		  (make-action-world
+		   :x x
+		   :y y 
+		   :w w 
+		   :h h
+		   :bg-label bg-label
+		   :vec-obj vec-obj
+		   :gravity gravity
+		   :land-height land-height
+		   :land-label land-label
+		   )
+		  )
+	r-world
+
+	);let
+
+)
+
+(defun new-action-obj (action-world x y w h type speed angle weight obj-str)
+  (let (r-obj)
+
+
+	(setq r-obj
+		  (make-action-obj 
+		   :x x
+		   :y y
+		   :w w
+		   :h h
+		   :type type
+		   :label (new-label x y w h obj-str)
+		   :speed speed
+		   :angle angle
+		   :hp 1
+		   :no-damage nil
+		   :dead-effect nil
+		   :weight weight
+		   )
+		  )
+
+		  (vec-push @action-world.vec-obj r-obj)
+
+		  r-obj 
+	)
+
+)
+
+(defun world-move-obj (world obj x y)
+;;   (+= @obj.x x)
+;;   (+= @obj.y y)
+  (world-set-obj world obj (+ @obj.x x)  (+@obj.y y))
+)
+
+(defun world-set-obj (world obj x y)
+  (setf @obj.x x)
+  (setf @obj.y y)
+  (setf @obj.label.x @obj.x)
+  (setf @obj.label.y @obj.y)
+)
+
+(defun action-forward (action-world)
+  ;;位置更新
+  (for (i 0 (length @action-world.vec-obj))
+	(let (obj)
+	  (setq obj (vec-get @action-world.vec-obj i))
+	  (world-move-obj action-world obj 0 (- @obj.speed))
+	  ;;重力落下
+	  (world-move-obj action-world obj 0 (* @obj.y @action-world.gravity))
+	  ;;地面判定
+	  (let ((land-y (- @action-world.h @action-world.land-height)))
+		(if (> (+ @obj.y @obj.h) land-y) (world-set-obj action-world obj @obj.x (- land-y @obj.h))))
+	  (vec-set @action-world.vec-obj i obj)
+	  );let
+	);for
+)
+
+
 
 
