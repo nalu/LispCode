@@ -1,8 +1,8 @@
 
 
-(ql:quickload :alexandria);譁�蟄怜�励Λ繧､繝悶Λ繝ｪ
+(ql:quickload :alexandria)
 (load "./util.lisp")
-
+(load "./at-accessor.lisp")
 
 ;;wav manager
 
@@ -28,13 +28,14 @@
 (defparameter testbuf nil)
 (defparameter read-block-size (- array-total-size-limit 1))
 (defstruct (chunk) name  position size)
+(defparameter *chunk-map* nil)
 (defun wav-get-header (path)
 
 
   (with-open-file 
 	  (s path :direction :input :element-type '(unsigned-byte 8))
  	(let ((buf (make-array (file-length s) :element-type '(unsigned-byte 8)))
-		  chunk-map)
+		  )
 ;; 	(let ((buf (make-array read-block-size  :element-type '(unsigned-byte 8))))
 	  (read-sequence buf s)
 	  (format t "~a~%" (subseq buf 0 100))
@@ -58,7 +59,7 @@
 	  (format t "CHUNK:~a~%" (convert-4byte-list-to-str (subseq buf 102 106)))
 	  (format t "CHUNK-BYTE:~a~%" (convert-4byte-list-to-number (subseq buf 106 110)))
 
-	  (setq chunk-map (get-chunk-map buf 12))
+	  (setq *chunk-map* (get-chunk-map buf 12))
 	  );let
 	);open
 )
@@ -83,12 +84,9 @@
 	(loop for i below *tag-search-max* do
 
 	   (if (>= chunk-start (length buf))
-;; 		   (return-from get-chunk-map r-vec)
 			 (return)
 		   )
 		 
-;; 		 (setf chunk-name (map 'list (lambda(x)(code-char x)) (subseq buf chunk-start (+ chunk-start 4))))
-;; 		 (setf chunk-name (concatenate 'string chunk-name))
 		 (setf chunk-name (convert-4byte-list-to-str (subseq buf chunk-start (+ chunk-start 4))))
 		 (setf data-position (+ chunk-start 8))
 		 (setf chunk-size (convert-4byte-list-to-number (subseq buf (+ chunk-start 4) (+ chunk-start 8))))
@@ -110,4 +108,120 @@
   
 )
 
+;;タイムストレッチ処理
+;;波形データを特定ブロックサイズでずらしながらコピー
+;;ブロックが小さすぎると低周波が聞こえなくなる。50msecが良いらしい
+;;サンプリングレートの５％ずつちぎって貼り付ける作業。
+;;余った50msec未満の断片は消え
 
+;;ブロックサイズの２０％をクロスフェード処理に当てる
+;;ブロックＡはブロックサイズの１２０％を取り、ブロックＢの０～２０％を合成して埋める
+(defun wav-data-timestretch( data samplerate speed )
+  (let (r-vec block-size cut-pos offset block-num cut-size
+			  block-data cross-block-data cross-block-size)
+	(setf r-vec (new-vec))
+	(setf block-size (truncate (* samplerate 0.05) 1))
+	(setf offset (truncate (* speed block-size) 1))
+	(setf block-num (truncate (length data) offset)) 
+	(setf cross-block-data nil)
+	(setf cross-block-size (truncate (* block-size 0.2) 1))
+
+	(loop for i below block-num  do
+		 (format t "processing timestreatch ~d%~%" (* (/ i block-num) 100.0))
+		 (setf cut-pos (* i offset))
+		 (setf cut-size block-size)
+
+		 ;;残りデータがブロックサイズに満たない場合はある分だけ貼り付け
+		 (if (< (- (length data) cut-pos) block-size)
+			 (setf cut-size (- (length data) cut-pos))
+			 );
+
+		 ;;ブロックデータを作成
+		 (setf block-data (subseq data cut-pos (+ cut-pos cut-size)))
+
+
+		 ;;クロスフェード用データがある場合はブロックデータと合成する
+		 (cond ((not (equal cross-block-data nil))
+;; 				(setf (subseq block-data 0 cross-block-size) cross-block-data)
+				(setf (subseq block-data 0) 
+					  (get-crossfade-data cross-block-data (subseq block-data 0 cross-block-size)))
+				));cond
+
+		 ;;クロスフェード用データを作成
+		 ;;copy last 20%
+		 (setf cross-block-data 
+			   (subseq block-data 
+					   (- (length block-data) cross-block-size) block-size))
+
+		 ;log
+;;  		 (format t "block-size: ~d offset:~a block:~d/~d ~d/~d" block-size offset i block-num (+ cut-pos cut-size) (length data) )
+
+ 		 (vec-concat r-vec block-data)
+		 );loop
+
+	(print "finish process timestretch")
+	r-vec
+	);let
+
+
+)
+
+;;クロスフェード用のデータ列を作成する
+(defun get-crossfade-data( a-data b-data)
+;  (mapcar (lambda(x y) (truncate (+ x y) 2)) (coerce a-data 'list) (coerce b-data 'list))
+)
+
+;;指定ファイルに対して波形データ部分を書き込み直し、新しい名前で出力
+(defun wav-data-write( path output-path speed)
+  (wav-get-header path)
+
+  (let (write-data)
+
+	(with-open-file 
+		(s path :direction :input :element-type '(unsigned-byte 8))
+	  (let ((buf (make-array (file-length s) :element-type '(unsigned-byte 8)))
+			data-chunk
+			data-buf
+		  )
+		(read-sequence buf s)
+		(setf data-chunk (elt *chunk-map* 2))
+		(print data-chunk)
+		(setf data-buf (subseq buf @data-chunk.position (+ @data-chunk.position @data-chunk.size)))
+
+
+		(setf data-buf (subseq data-buf 0 (truncate (length data-buf) 10)));大きすぎるので分割
+
+;; 		(wav-data-timestretch data-buf 48000 0.8)
+		(setf write-data (wav-data-timestretch data-buf 48000 speed))
+
+		(fill buf 0 
+			  :start @data-chunk.position 
+			  :end (+ @data-chunk.position @data-chunk.size))
+		(setf (subseq buf @data-chunk.position) write-data )
+		(save-file output-path "wav" buf)
+		
+		);let
+	  );open
+
+
+
+	);let
+)
+
+
+(defun save-file (filename extension data)
+;;   (print "write ~a" filename)
+  (with-open-file 
+;;      (my-stream (format nil "~a.~a" filename extension))
+      (my-stream filename
+		 :direction :output 
+		 :if-exists :supersede ;overwrite
+		 :element-type '(unsigned-byte 8)
+		 )
+    (loop for i below (length data) do
+;	   (print (aref data i))
+	 (write-byte (aref data i) my-stream)
+	 )
+    
+    )
+)  

@@ -136,6 +136,13 @@
    :count 1)
 )
 
+;;˜AŒ‹
+(defmacro vec-concat (vec sequence)
+  `(setf ,vec 
+		(concatenate 'vector ,vec ,sequence)
+		)
+)
+
 ;;ŠÈˆÕfor
 ;;Žg‚¢•û
 ;;(for (i 0 10)
