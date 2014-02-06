@@ -1,6 +1,6 @@
 
 (ql:quickload :cl-ppcre);文字列ライブラリ
-(load "c:/Lisp/LispCode/LispRough.lisp")
+(load "./LispRough.lisp")
 
 
 ;--------------------------------- CODE MAKER ---------------------------------
@@ -269,6 +269,25 @@ test
 ;hi_lowを生成
 (defun generate-hilow-js()
   (generate-js "c:/Lisp/LispCode/hi_low.lisp" "hilow")
+)
+
+;;html-moniter
+(defun generate-html-moniter()
+
+  
+  (setq seed-filename "./seed-code/html_moniter/html_moniter.html")
+  (let (loadstr draw-code))
+    (setq loadstr (load-seed-code seed-filename))
+    (setq draw-code "test")
+    
+  (setq loadstr (cl-ppcre:regex-replace-all "<@lisp-rough-html-moniter>" loadstr draw-code))
+
+    (setq loadstr (escape-childa-all loadstr)) ; escape childa
+	(setq loadstr (convert-return-all-crlf loadstr)) ;          newline return  
+	(create-directory (format nil "./generate-~a/" "html_moniter"));
+    (make-code-win (format nil "./generate-~a/~a" "html_moniter" "html_moniter.html") loadstr)
+    )
+
 )
 
 

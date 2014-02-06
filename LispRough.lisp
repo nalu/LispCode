@@ -25,6 +25,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 (defparameter *screen-h* 24)
 (defparameter *screen-map* (make-array (* *screen-w* *screen-h*)))
 
+(defparameter *moniter-mode* nil)
+(defparameter *moniter-obj-vec* nil)
 
 
 ;;object-arrayを追加できる形式に変更
@@ -123,15 +125,28 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   ;Object - draw
   (loop for i below (length *object-array*) do
        (let ((obj (aref *object-array* i)))
-		 (if (equal (label-visible obj) t)
-		     (draw-label (aref *object-array* i ))
-		     )))
- 
+	 ;; (if (equal (label-visible obj) t)
+	 ;;     (draw-label (aref *object-array* i ))
+	 ;;     )
+	 (if (equal (square-visible obj) t)
+	     (cond 
+	       ((equal (type-of obj) 'image) (draw-image obj))
+	       (t (draw-label obj))
+	       );cond
+	     );if
+
+	 );let
+       );loop
+
   ; draw map
   (draw-map)
   
   (fresh-line)
 
+  ;;moniter
+  (if (equal *moniter-mode* t)
+      (setq *moniter-vec (remove-if (lambda(obj)(not (square-visible obj))) *object-array*))
+      );if
 )
 
 ;Map
@@ -250,8 +265,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 ;Square
-(defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) )
-;; (defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) (visible t) )
+;; (defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) )
+(defstruct (square (:include object)) (x 0) (y 0) (w 0) (h 0) (visible t) )
 (defmethod draw-square ((obj square))
   (map-set-square (square-x obj) (square-y obj)
 		  (square-w obj) (square-h obj) )
@@ -259,8 +274,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
  
 ;Label
-(defstruct (label (:include square)) (text "") (visible t) )
-;; (defstruct (label (:include square)) (text "") )
+;; (defstruct (label (:include square)) (text "") (visible t))
+(defstruct (label (:include square)) (text "") )
 (defun draw-label ( obj )
   (draw-square obj)
   (map-set-str (+ (square-x obj) 1) (+ (square-y obj) 1) (label-text obj))
@@ -271,8 +286,15 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 ;Button
 (defstruct (button (:include label)) (key) (call) (enable t)　(tag nil) )
-(defun draw-button ( obj )
-  (draw-label obj)
+;; (defun draw-button ( obj )
+;;   (draw-label obj)
+;; )
+
+;Image
+(defstruct (image (:include square)) (filepath) (draw-method 'draw-image))
+(defun draw-image (obj)
+  (draw-square obj)
+  (map-set-str (+ (square-x obj) 1) (+ (square-y obj) 1) (image-filepath obj))
 )
 
 ;ボタンが押された時は、セットしてあるコールバックの引数の数をカウントして、
@@ -317,6 +339,12 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	obj)
 )
 
+(defun new-image (x y w h filepath )
+  (let (obj)
+    (setq obj (make-image :x x :y y :w w :h h :filepath filepath ))
+    (object-add obj)
+    obj)
+)
 
 
 
@@ -876,6 +904,31 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (setf @param.value @param.default)
 )
 
+;;MGOB Guage
+;:nccessary parameter class
+(defstruct (guage)
+  title
+  parameter
+  label
+)
+(defun new-guage( x y w h title parameter )
+  (let (guage-obj)
+    (setq guage-obj 
+	  (make-guage
+	   :title title
+	   :parameter parameter
+	   :label (new-label x y w h title)
+	   ))
+    (guage-update guage-obj)
+    guage-obj
+    )
+)
+(defun guage-update (guage)
+  (setf @guage.label.text
+   (format nil "~a:~V@{~A~:*~}" @guage.title @guage.parameter.value "*")
+   )
+)
+
 ;;MGOB タイトルクラス
 (defstruct (title (:include object)) 
   title-label
@@ -1261,7 +1314,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 )
 
 
-(defun shooting-move-obj (obj x y)
+
+(defun shooting-move-obj (shooting obj x y)
   (+= @obj.x x)
   (+= @obj.y y)
   (setf @obj.label.x @obj.x)
@@ -1280,10 +1334,37 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (for (i 0 (length @shooting.vec-obj))
 	(let (obj)
 	  (setq obj (vec-get @shooting.vec-obj i))
+<<<<<<< HEAD
 	  (shooting-move-obj obj 0 (- @obj.speed))
+=======
+	  (shooting-move-obj shooting
+			     obj 
+			     (get-move-x-rad @obj.angle @obj.speed)
+			     (get-move-y-rad @obj.angle @obj.speed))
+>>>>>>> 16f83f093ddbf130e86b3adc76451f44c6beb72a
 	  (vec-set @shooting.vec-obj i obj)
 	  );let
 	);for
+)
+
+(defun get-move-x-rad (rad speed)
+  ;; (* (cos (* (/ rad 180) pi) ) speed)
+
+  ;;精度コントロール
+  (let (r-x)
+   (setq r-x (* (cos (* (/ rad 180) pi) ) speed))
+   (setq r-x (truncate r-x 1.0000))
+   r-x
+   )
+)
+
+(defun get-move-y-rad (rad speed)
+
+  (let (r-y)
+    (setq r-y (* (sin (* (/ rad 180) pi) ) speed))
+    (setq r-y (truncate r-y 1.0000))
+    r-y
+    )
 )
 
 ;;指定のタイプのオブジェクト同士の衝突をチェックし、ダメージ処理を行なう

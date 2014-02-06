@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="ja" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <title>Canvas</title>
+
+    <script>
+setTimeout("location.reload()",1000*1);
+
+color_red = 'rgb(192,80,77)';moniter>
+};
+
+function rgb(r,g,b)
+{
+  return "rgb("+r+","+g+","+b+")";
+}
+
+function drawRect(x, y, w, h, color) {
+  var ctx = canvas.getContext('2d');
+  ctx.beginPath();
+  ctx.fillStyle = color;
+  ctx.fillRect(x,y,w,h);
+}
+
+function drawText( x,y,w,h,str,color)
+{
+  var ctx = canvas.getContext('2d');
+  ctx.font = h+"px 'ＭＳ Ｐゴシック'";
+  ctx.strokeStyle = color;
+  ctx.strokeText(str, x, y+h, w);
+}
+
+function drawImage( x,y,filepath )
+{
+  var ctx = canvas.getContext('2d');
+  /* Imageオブジェクトを生成 */
+  var img = new Image();
+  img.src = filepath+"?" + new Date().getTime();
+  /* 画像が読み込まれるのを待ってから処理を続行 */
+  img.onload = function() {
+    ctx.drawImage(img, x,y);
+  }
+}
+    </script>
+
+  </head>
+  <body>
+    <canvas id="canvas" width="480" height="480"></canvas>
+  </body>
+</html>

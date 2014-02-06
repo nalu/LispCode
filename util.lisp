@@ -147,9 +147,6 @@
 ;;)
 
 
-;;デクリメント処理もしたいが問題あったので中止
-;;問題の状態特定も時間の関係で未特定
-;;とりあえずインクリメントだけで使用
 (defmacro for ((var start end) &body body)
   (let ((block-name (gensym "BLOCK")) 
 		(direction 'below) )
@@ -170,6 +167,31 @@
                   ,@body))))
 
 )
+
+
+;;デクリメント処理もしたいが問題あったので中止
+;;問題の状態特定も時間の関係で未特定
+;;とりあえずインクリメントだけで使用
+;; (defmacro for ((var start end) &body body)
+;;   (let ((block-name (gensym "BLOCK")) 
+;; 		(direction 'below) )
+
+;; ;; 		(direction (if (> start end) 'above 'below)))
+;; ;; 		(print direction)
+
+
+;; ;; 	(if (> start end ) (setq direction 'above))
+;; ;;  	`(if (> ,start ,end ) (setq ,direction 'above))
+;;     `(loop for ,var from ,start below ,end
+;; ;;     `(loop for ,var from ,start ,direction ,end
+
+;; ;;     `(loop for ,var from ,start ,(if (> `,start `,end) 'above 'below) ,end
+;;            do (block ,block-name
+;;                 (flet ((for-continue ()
+;;                          (return-from ,block-name)))
+;;                   ,@body))))
+
+;; )
 
 
 

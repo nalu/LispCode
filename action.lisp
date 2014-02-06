@@ -19,7 +19,7 @@
   (def-v vec-player-bullet (new-vec))
   (def-v vec-enemy (new-vec))
   (def-v bullet-speed 3)
-  (def-v enemy-speed 0)
+  (def-v enemy-speed 1)
   (def-v enemy-w 3)
   (def-v enemy-h 3)
   (def-v enemy-map-x 1)
@@ -45,7 +45,7 @@
   (def-v button-left (new-button 34 25 7 3 "[A] Left" 'a #'push-left))
   (def-v button-right (new-button 34 28 7 3 "[D] Right" 'd #'push-right))
 ;;   (def-v button-down (new-button 34 31 7 3 "[S] Brake" 's #'push-down))
-  (def-v button-down (new-button 34 31 7 3 "[J] jump" 'b #'push-jump))
+  (def-v button-down (new-button 34 31 7 3 "[J] jump" 'j #'push-jump))
   (def-v button-quit (new-button 34 34 7 3 "[Q]uit" 'q #'push-quit))
 
 
@@ -194,7 +194,8 @@
 )
 
 (def-f push-jump()
-  (shot-player)
+;;   (shot-player)
+  (jump-player)
   (next-turn)
 )
 
@@ -216,19 +217,10 @@
 ;;   (+= @label-player.y y)
 )
 
-;;自機ショット
-(def-f shot-player ()
-  (vec-push vec-player-bullet 
-			(new-shooting-obj 
-			 shooting
-			 @label-player.x
-			 (- @label-player.y 3)
-			 3 3 
-			 'player-bullet
-			 bullet-speed
-			 270
-			 "|")
-			)
+;;ジャンプ
+(def-f jump-player()
+  (setf @player.angle 270)
+  (setf @player.speed 10)
 )
 
 ;;プレイヤ作成
@@ -257,7 +249,7 @@
 			 w h
 			 'enemy
 			 enemy-speed
-			 270 1
+			 180 1
 			 obj-str)
 			)
 
