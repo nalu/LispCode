@@ -1334,14 +1334,10 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (for (i 0 (length @shooting.vec-obj))
 	(let (obj)
 	  (setq obj (vec-get @shooting.vec-obj i))
-<<<<<<< HEAD
-	  (shooting-move-obj obj 0 (- @obj.speed))
-=======
 	  (shooting-move-obj shooting
 			     obj 
 			     (get-move-x-rad @obj.angle @obj.speed)
 			     (get-move-y-rad @obj.angle @obj.speed))
->>>>>>> 16f83f093ddbf130e86b3adc76451f44c6beb72a
 	  (vec-set @shooting.vec-obj i obj)
 	  );let
 	);for
