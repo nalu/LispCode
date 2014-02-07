@@ -8,7 +8,7 @@
 
 
   ;;タイトル
-  (def-v *title* (new-title "galaga like game" #'new-game-callback))
+  ;; (def-v *title* (new-title "galaga like game" #'new-game-callback))
 
 
   ;;変数
@@ -26,10 +26,19 @@
   (def-v enemy-atack-wait 5)
 
   ;;view
+  
   (def-v message-label (new-label 34 2 7 3 "message"))
   (def-v label-stage (new-label 34 6 7 3 "Stage:"))  
   (def-v label-score (new-label 34 9 7 3 "Score:"))  
   (def-v player-guage (new-guage 34 12 7 3 "stock" player-stock ))
+  (def-v button-actionbar-setting (new-button 15 1 3 3 "[M]enu" 'm #'push-actionbar-setting))
+  (def-v tab-button-record (new-button 1 4 7 3 "[RT]record" 'rt #'push-record-tab))
+  (def-v tab-button-list (new-button 9 4 7 3 "[LT]List" 'lt #'push-list-tab))
+  (def-v recorder-image-label (new-label 5 12 7 3 "<Stop>")) 
+  (def-v button-record-start (new-button 1 20 7 3 "[R]ecord" 'r #'push-record-start))
+  (def-v button-record-start (new-button 9 20 7 3 "[S]top" 'r #'push-record-stop))
+  
+  
 
   ;;obj
   ;; (def-v label-player (new-label 20 34 3 3 "P"))
@@ -241,9 +250,23 @@
   (next-turn)
 )
 
-(def-f push-beam()
-  (shot-player)
-  (next-turn)
+(def-f push-actionbar-setting()
+  (print "setting")
+)
+(def-f push-record-tab()
+  (print "tab-record")
+)
+
+(def-f push-list-tab()
+  (print "tab-list")
+)
+
+(def-f push-record-start()
+  (print "record-start")
+)
+
+(def-f push-record-stop()
+  (print "record-stop")
 )
 
 ;;燃料変更
