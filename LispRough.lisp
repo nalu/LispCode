@@ -1363,6 +1363,21 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
     )
 )
 
+;;矩形と矩形のヒットチェック
+(defun hitcheck-rect-in-rect ( ax ay aw ah bx by bw bh)
+  (if
+   (and 
+	(< ax (+ bx bw)) 
+	(< bx (+ ax aw))
+	(< ay (+ by bh))
+	(< by (+ ay ah)))
+   t
+   nil
+   )
+
+)
+
+;;>>>>>>>>>>worldに統合. shooting専用関数は廃止予定
 ;;指定のタイプのオブジェクト同士の衝突をチェックし、ダメージ処理を行なう
 ;;このメソッドでは衝突した双方にダメージを与える
 (defun damage-conflict-object ( shooting type1 type2 )
@@ -1389,16 +1404,20 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	);let
 )
 
+
+;;>>>>>>>>>>worldに統合. shooting専用関数は廃止予定
 ;;指定のタイプのオブジェクト配列を取得
 (defun shooting-get-vec-object ( shooting type )
   (remove-if #'(lambda (obj) (not (equal @obj.type type))) @shooting.vec-obj)
 )
 
+;;>>>>>>>>>>worldに統合. shooting専用関数は廃止予定
 ;;指定のオブジェクトをリストから除外、UIも削除する
 (defun shooting-remove-obj (shooting obj)
   (gob-remove @obj.label)
   (vec-remove-if @shooting.vec-obj obj)
 )
+
 
 
 
@@ -1427,8 +1446,90 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   hp
   no-damage
   dead-effect ;;死亡エフェクトフラグ
+  dead-effect-timer
+  dead-effect-wait
+  hit-flag ;;ヒットフラグ
 )
 
+;;基本の進行関数
+(defun world-forward (world)
+  
+  ;;死亡エフェクト処理
+  (for-- (i (- (length @world.vec-obj) 1) 0)
+	(let (obj)
+	  (setf obj (elt @world.vec-obj i))
+	  (cond 
+		(@obj.dead-effect
+		  (++ @obj.dead-effect-timer)
+		  (print @obj.dead-effect-wait)
+		  (if (>= @obj.dead-effect-timer @obj.dead-effect-wait)
+			  (world-remove-obj world obj)
+			  );if
+		  );check-dead
+		);cond
+	  );let
+	);for
+
+)
+
+;;指定のタイプのオブジェクト同士の衝突をチェックし、ヒットフラグON
+;;このメソッドでは衝突した双方のヒットフラグをON
+(defun world-hit-check ( world type1 type2 )
+  
+  (let (vec1 vec2 obj1 obj2)
+	(setq vec1 (world-get-obj-vec world type1))
+	(setq vec2 (world-get-obj-vec world type2))
+
+	(for (i 0 (length vec1))
+	  (for (j 0 (length vec2))
+		(setq obj1 (vec-get vec1 i))
+		(setq obj2 (vec-get vec2 j))
+		(cond 
+		  ((hitcheck-rect-in-rect 
+			@obj1.x @obj1.y @obj1.w @obj1.h
+			@obj2.x @obj2.y @obj2.w @obj2.h)
+		   (setf @obj1.hit-flag t)
+		   (setf @obj2.hit-flag t)
+		   )
+		  );cond
+		
+		));for
+
+	);let
+)
+;;指定のタイプのオブジェクト配列を取得
+(defun world-get-obj-vec ( world type )
+  (remove-if #'(lambda (obj) (not (equal @obj.type type))) @world.vec-obj)
+)
+
+;;指定のオブジェクトをリストから除外、UIも削除する
+(defun world-remove-obj (world obj)
+  (gob-remove @obj.label)
+  (vec-remove-if @world.vec-obj obj)
+)
+
+(defun world-remove-obj-vec (world obj-vec)
+  (map 'list (lambda(obj)(world-remove-obj world obj )) obj-vec)
+)
+
+(defun world-move-obj (world obj x y)
+  (world-set-obj world obj (+ @obj.x x)  (+@obj.y y))
+)
+
+(defun world-set-obj (world obj x y)
+  (setf @obj.x x)
+  (setf @obj.y y)
+  (setf @obj.label.x @obj.x)
+  (setf @obj.label.y @obj.y)
+)
+
+;;死亡処理
+(defun world-dead-obj (world obj dead-str wait)
+  (setf @obj.dead-effect t)
+  (setf @obj.dead-effect-wait wait)
+  (setf @obj.dead-effect-timer 0)
+  (setf @obj.label.text dead-str)
+)
 
 
 ;;アクションワールド
@@ -1442,6 +1543,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 (defstruct (action-obj(:include world-obj))
   weight
+  jump-speed
+  jump-power
+  jump-flag
 )
 
 
@@ -1470,7 +1574,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 )
 
-(defun new-action-obj (action-world x y w h type speed angle weight obj-str)
+(defun new-action-obj (action-world x y w h type speed angle weight jump-power obj-str)
   (let (r-obj)
 
 
@@ -1488,6 +1592,9 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		   :no-damage nil
 		   :dead-effect nil
 		   :weight weight
+		   :jump-speed 0
+		   :jump-power jump-power
+		   :jump-flag nil
 		   )
 		  )
 
@@ -1498,35 +1605,48 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 )
 
-(defun world-move-obj (world obj x y)
-;;   (+= @obj.x x)
-;;   (+= @obj.y y)
-  (world-set-obj world obj (+ @obj.x x)  (+@obj.y y))
-)
 
-(defun world-set-obj (world obj x y)
-  (setf @obj.x x)
-  (setf @obj.y y)
-  (setf @obj.label.x @obj.x)
-  (setf @obj.label.y @obj.y)
+(defun action-jump (action-world obj)
+  (setf @obj.jump-flag t)
+  (+= @obj.jump-speed @obj.jump-power)
 )
 
 (defun action-forward (action-world)
+
+  ;;親クラス呼び出し
+  (world-forward action-world)
+
   ;;位置更新
   (for (i 0 (length @action-world.vec-obj))
 	(let (obj)
 	  (setq obj (vec-get @action-world.vec-obj i))
-	  (world-move-obj action-world obj 0 (- @obj.speed))
+	  (world-move-obj action-world obj
+					  (get-move-x-rad @obj.angle @obj.speed)
+					  (get-move-y-rad @obj.angle @obj.speed))
+
+	  ;;ジャンプ計算
+	  (world-move-obj action-world obj 0 (get-move-y-rad 270 @obj.jump-speed))
+
 	  ;;重力落下
-	  (world-move-obj action-world obj 0 (* @obj.y @action-world.gravity))
+	  (world-move-obj action-world obj 0 (* @obj.weight @action-world.gravity))
+
+
+	  ;;ジャンプ減衰
+	  (-= @obj.jump-speed 1)
+	  (if (< @obj.jump-speed 0 ) (setf @obj.jump-speed 0))
+
 	  ;;地面判定
 	  (let ((land-y (- @action-world.h @action-world.land-height)))
-		(if (> (+ @obj.y @obj.h) land-y) (world-set-obj action-world obj @obj.x (- land-y @obj.h))))
-	  (vec-set @action-world.vec-obj i obj)
+		(cond ((>= (+ @obj.y @obj.h) land-y)
+			   (world-set-obj action-world obj @obj.x (- land-y @obj.h))
+			   (setf @obj.jump-flag nil)
+			   );check land
+			  );cond
+		);let
+
+
 	  );let
 	);for
 )
-
-
 
 

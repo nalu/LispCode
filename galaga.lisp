@@ -322,19 +322,6 @@
 )
 
 
-;;矩形と矩形のヒットチェック
-(def-f hitcheck-rect-in-rect ( ax ay aw ah bx by bw bh)
-  (if
-   (and 
-	(< ax (+ bx bw)) 
-	(< bx (+ ax aw))
-	(< ay (+ by bh))
-	(< by (+ ay ah)))
-   t
-   nil
-   )
-
-)
 
 ;;ステージクリアチェック
 (def-f check-clear-stage ()

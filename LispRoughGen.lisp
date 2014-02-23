@@ -257,6 +257,8 @@ test
 )
 
 
+
+
 ;JS用のコードを生成
 ;lispのゲームファイルパスと、ゲームのタイトルを入力して実行する
 (defun generate-js ( game-filename game-title )
@@ -269,6 +271,11 @@ test
 ;hi_lowを生成
 (defun generate-hilow-js()
   (generate-js "c:/Lisp/LispCode/hi_low.lisp" "hilow")
+)
+
+;actionを生成
+(defun generate-action-js()
+  (generate-js "./action.lisp" "ballaction")
 )
 
 ;;html-moniter
@@ -286,9 +293,8 @@ test
 	(setq loadstr (convert-return-all-crlf loadstr)) ;          newline return  
 	(create-directory (format nil "./generate-~a/" "html_moniter"));
     (make-code-win (format nil "./generate-~a/~a" "html_moniter" "html_moniter.html") loadstr)
-    )
-
 )
+
 
 
 ;改行コードをすべてCRLF( return + newline) に揃えた文字列を返す
@@ -463,9 +469,6 @@ test
 
 ;;   target
 ;; )
-
-
-
 
 
 
