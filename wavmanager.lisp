@@ -5,7 +5,6 @@
 (load "./at-accessor.lisp")
 
 ;;wav manager
-
 (defun fileload (path)
   (with-open-file 
 ;      (my-stream (format nil "~a.~a" filename extension)
@@ -29,17 +28,44 @@
 (defparameter read-block-size (- array-total-size-limit 1))
 (defstruct (chunk) name  position size)
 (defparameter *chunk-map* nil)
+(defparameter *enable-crossfade* nil)
+
+(defstruct (wavefile)
+  chunk-map
+  fmt  
+  data
+  list
+)
+
+(defstruct chunk-fmt
+  format-id
+  channel
+  samplerate
+  data-speed
+  block-size
+  sample-bit
+)
+
+(defstruct chunk-data
+  wave
+)
+
+(defstruct chunk-list
+  data
+)
+
+
 (defun wav-get-header (path)
 
 
   (with-open-file 
 	  (s path :direction :input :element-type '(unsigned-byte 8))
  	(let ((buf (make-array (file-length s) :element-type '(unsigned-byte 8)))
-		  )
+		r-wavefile  )
 ;; 	(let ((buf (make-array read-block-size  :element-type '(unsigned-byte 8))))
 	  (read-sequence buf s)
 	  (format t "~a~%" (subseq buf 0 100))
-
+	  (setf testbuf buf)
 
 	  (format t "RIFF:~a~%" (convert-4byte-list-to-str (subseq buf 0 4)))
 	  (format t "RIFF-SIZE:~d~%" (convert-4byte-list-to-number (subseq buf 4 8)))
@@ -60,8 +86,64 @@
 	  (format t "CHUNK-BYTE:~a~%" (convert-4byte-list-to-number (subseq buf 106 110)))
 
 	  (setq *chunk-map* (get-chunk-map buf 12))
+	  (setf r-wavefile (make-wavefile :chunk-map *chunk-map* ))
+	  (for (i 0 (length @r-wavefile.chunk-map))
+	    (let (chunk)
+	      (setf chunk (elt @r-wavefile.chunk-map i))
+	      (if (equal @chunk.name "fmt ")
+		  (setf @r-wavefile.fmt (get-chunk-fmt @chunk.position @chunk.size buf))
+		  )
+	      (if (equal @chunk.name "data")
+		  (setf @r-wavefile.data (get-chunk-data @chunk.position @chunk.size buf))
+		  )
+	      (if (equal @chunk.name "list")
+		  (setf @r-wavefile.list (get-chunk-list @chunk.position @chunk.size buf))
+		  )
+	      );let
+	    );for
+	  r-wavefile
 	  );let
 	);open
+)
+
+
+(defun subseq-size ( buf pos size )
+  (subseq buf pos (+ pos size))
+)
+
+(defun get-chunk-fmt( start-pos size buf)
+  (let (chunk-fmt pos)
+    (setf chunk-fmt (make-chunk-fmt))
+    (setq pos start-pos)
+
+    (setf @chunk-fmt.format-id (subseq-size buf pos 2 ))
+    (+= pos 2)
+
+    (setf @chunk-fmt.channel (subseq-size buf pos 2))
+    (+= pos 2)
+
+    (setf @chunk-fmt.samplerate (convert-4byte-list-to-number (subseq-size buf pos 4) ))
+    (+= pos 4)
+
+    (setf @chunk-fmt.data-speed (convert-4byte-list-to-number (subseq-size buf pos 4) ))
+    (+= pos 4)
+
+
+    (setf @chunk-fmt.block-size (subseq-size buf pos 2) )
+    (+= pos 2)
+
+    (setf @chunk-fmt.sample-bit (subseq-size buf pos 2) )
+    (+= pos 2)
+
+    chunk-fmt
+    );let
+
+)
+
+(defun get-chunk-data(pos size buf)
+)
+
+(defun get-chunk-list(pos size buf)
 )
 
 (defun convert-4byte-list-to-number(byte-list)
@@ -94,10 +176,10 @@
 ;; 		 (format t "name:~a size:~a~%" chunk-name chunk-size)
 
 		 (vec-push r-vec 
-				   (make-chunk 
-					:name chunk-name 
-					:position data-position 
-					:size chunk-size))
+			   (make-chunk 
+			    :name chunk-name 
+			    :position data-position 
+			    :size chunk-size))
 
 		 (setq chunk-start (+ chunk-start chunk-size 8));8, chunk name and size byte
 		   );loop
@@ -115,12 +197,12 @@
 ;;余った50msec未満の断片は消え
 
 ;;ブロックサイズの２０％をクロスフェード処理に当てる
-;;ブロックＡはブロックサイズの１２０％を取り、ブロックＢの０～２０％を合成して埋める
+;;ブロックＡはブロックサイズの１２０％を取り、ブロックＢの０～２０％を合成
 (defun wav-data-timestretch( data samplerate speed )
   (let (r-vec block-size cut-pos offset block-num cut-size
 			  block-data cross-block-data cross-block-size)
 	(setf r-vec (new-vec))
-	(setf block-size (truncate (* samplerate 0.05) 1))
+	(setf block-size (truncate (* samplerate 2 2 0.05 ) 1)) ;sample * 16bit * 2ch * 5%
 	(setf offset (truncate (* speed block-size) 1))
 	(setf block-num (truncate (length data) offset)) 
 	(setf cross-block-data nil)
@@ -138,23 +220,25 @@
 
 		 ;;ブロックデータを作成
 		 (setf block-data (subseq data cut-pos (+ cut-pos cut-size)))
+	     
 
-
-		 ;;クロスフェード用データがある場合はブロックデータと合成する
-		 (cond ((not (equal cross-block-data nil))
-;; 				(setf (subseq block-data 0 cross-block-size) cross-block-data)
-				(setf (subseq block-data 0) 
-					  (get-crossfade-data cross-block-data (subseq block-data 0 cross-block-size)))
-				));cond
+		 ;;クロスフェード用データがある場合はブロックデータと合成
+	         (if *enable-crossfade*
+		     (cond ((not (equal cross-block-data nil))
+			    (setf (subseq block-data 0) 
+			    	  (get-crossfade-data cross-block-data (subseq block-data 0 cross-block-size))
+			    )
+			    ));cond
+		     )
 
 		 ;;クロスフェード用データを作成
 		 ;;copy last 20%
 		 (setf cross-block-data 
 			   (subseq block-data 
-					   (- (length block-data) cross-block-size) block-size))
-
+					   (- block-size cross-block-size) block-size))
 		 ;log
 ;;  		 (format t "block-size: ~d offset:~a block:~d/~d ~d/~d" block-size offset i block-num (+ cut-pos cut-size) (length data) )
+
 
  		 (vec-concat r-vec block-data)
 		 );loop
@@ -166,13 +250,163 @@
 
 )
 
-;;クロスフェード用のデータ列を作成する
-(defun get-crossfade-data( a-data b-data)
-;  (mapcar (lambda(x y) (truncate (+ x y) 2)) (coerce a-data 'list) (coerce b-data 'list))
+;;create fade data
+;;by 5% to create a data
+(defun wav-data-fade ( data samplerate in-out fade-msec )
+  (let (r-vec block-size cut-pos offset block-num cut-size
+			  block-data cross-block-data cross-block-size)
+	(setf r-vec (new-vec))
+	(setf block-size (truncate (* samplerate 2 2 0.05 ) 1)) ;sample * 16bit * 2ch * 5%
+	;; (setf block-num (truncate (/ samplerate block-size)  1)) 
+	(setf block-num (* 20 5));SEC 5
+
+	(loop for i below block-num  do
+		 (format t "processing fadedata ~d%~%" (* (/ i block-num) 100.0))
+		 (setf cut-pos (* i block-size))
+		 (setf cut-size block-size)
+
+
+		 ;;make data
+		 (setf block-data (subseq data cut-pos (+ cut-pos cut-size)))
+
+	     ;;start 2 sec silent
+	         (cond ((< i 40 )
+		     (setf block-data (make-fade-data block-data i 40 'out))
+
+		     ;sin test
+			;; (setf block-data (make-sin-wave-data (length block-data) 48000  i 40))
+		     ));cond
+
+ 		 (vec-concat r-vec block-data)
+		 );loop
+
+	(print "finish process timestretch")
+	r-vec
+	);let
+
+
 )
 
-;;指定ファイルに対して波形データ部分を書き込み直し、新しい名前で出力
-(defun wav-data-write( path output-path speed)
+(defun make-fade-data (data-array number max in-out )
+  (let (r-array gain size)
+    (setf r-array (make-array (length data-array)))
+    (setf size (length r-array))
+    (for (i 0 size)
+      (setf (elt r-array i) (elt data-array i))
+
+      ;16bit > 8bit
+      (if (<= 128 (elt r-array i)) (-= (elt r-array i) 255))
+
+      ;gain
+      (setf gain 0.5)
+      (setf gain (/ (+ i (* size number)) (* size max) ));fade
+      (if (equal in-out 'out) (setq gain (- 1.0 gain)))
+      (setf (elt r-array i) (truncate (* (elt r-array i) gain) 1))
+
+      ;8bit > 16bit
+      (if (< (elt r-array i) 0) (setf (elt r-array i) (+ (elt r-array i) 255)))
+
+      ;; (if (<= 128 (elt r-array i)) (setf (elt r-array i) 0))
+      )
+  ;; (if (< data 0 ) (setf data 0))
+    (if (= number 0) (print r-array))
+ r-array
+ );let
+)
+(defparameter testd nil)
+(defun make-sin-wave-data(size sample number max)
+  (let (a f0 r-vec gain)
+;    (setf a 0.1)
+    (setf a 100)
+    (setf f0 500.0)
+    (setf r-vec (make-array size))
+    (for (n 0 size)
+      (setf (elt r-vec n) (* a (sin (/ (* 2.0  pi f0  n) sample))))
+      );for
+
+    ;gain
+    (setf gain 1.0)
+    (for (i 0 size)
+      ;; (setf gain (/ (+ i (* size number)) (* size max) ));fade
+      (setf (elt r-vec i) (* (elt r-vec i) gain))
+      )
+
+    ;float controll
+    (for (i 0 size)
+      (setf (elt r-vec i) (truncate (elt r-vec i) 1)))
+    ;test
+    ;; (cond ((= testd 0)
+    ;; 	   (setf testd r-vec)
+    ;; 	(print r-vec)))
+    ;test short
+    (for (i 0 size)
+      ;; (if (> (elt r-vec i) 0) ( setf (elt r-vec i ) (+ (elt r-vec i) 127))) ;+127 when + nu
+      
+      ;; (if (< (elt r-vec i) 0) ( setf  (elt r-vec i) (* (elt r-vec i) -1)) );=0 when - num
+       ;; (if (< (elt r-vec i) 0) ( setf  (elt r-vec i) (* -1 (elt r-vec i) )) );=0 when - num
+      (if (< (elt r-vec i) 0) (setf (elt r-vec i) (+ (elt r-vec i) 255)))
+      );for
+
+    (if (= number 0) (print r-vec))
+    ;short
+    ;; (for (i 0 size)
+    ;;   (setf (elt r-vec i) (+ (elt r-vec i) 127)))
+
+
+    r-vec
+    )
+)
+
+;;クロスフェード用のデータ列を作成
+(defun get-crossfade-data( a-data b-data)
+
+  (let (r-data)
+    (setf a-data (mapcar (lambda(x) (- x 128)) (coerce a-data 'list)))
+    (setf b-data (mapcar (lambda(x) (- x 128)) (coerce b-data 'list)))
+    
+    (setf r-data
+    	  (mapcar (lambda(x y ratio) 
+    		    (+ (* x (- 1.0 ratio))  (* y ratio)))
+    		    ;; (+ (* x ratio)  (* y (- 1.0 ratio))))
+    		  (coerce a-data 'list) 
+    		  (coerce b-data 'list)
+    		  (make-ratio-sequence (length b-data))
+    		  );map
+    	  );setf
+
+    (setf r-data (mapcar (lambda(x)(truncate (+ x 128) 1)) r-data))
+    r-data
+    );let
+)
+
+(defun testa()
+  (mapcar (lambda(x y i) (print i)) '(0 0 0 0) '(0 0 0 0) (make-serial-sequence 10))
+)
+
+(defun make-serial-sequence(size)
+  (coerce (make-serial-array size) 'list)
+)
+
+(defun make-serial-array(size)
+  (let (r-array) 
+    (setq r-array (make-array size))
+    (loop for i below size do
+	 (setf (elt r-array i) i)
+	 );loop
+    
+    r-array
+    );let
+)
+
+(defun make-ratio-sequence(size)
+  (let (ilist)
+    (setf ilist (make-serial-sequence size))
+    (mapcar (lambda(i) (* (/ i (- (length ilist) 1)) 1.0)) ilist)
+    )
+)
+
+;;指定ファイルに対して波形データ部分を書き込み直し、新しい名前で出力;;
+(defun wav-data-write (path output-path speed)
   (wav-get-header path)
 
   (let (write-data)
@@ -191,8 +425,10 @@
 
 		(setf data-buf (subseq data-buf 0 (truncate (length data-buf) 10)));大きすぎるので分割
 
-;; 		(wav-data-timestretch data-buf 48000 0.8)
-		(setf write-data (wav-data-timestretch data-buf 48000 speed))
+		;; (wav-data-timestretch data-buf 48000 0.8)
+		;; (setf write-data (wav-data-timestretch data-buf 48000 speed))
+
+		(setf write-data (wav-data-fade data-buf 48000 'in 1000))
 
 		(fill buf 0 
 			  :start @data-chunk.position 
