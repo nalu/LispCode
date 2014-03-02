@@ -8,7 +8,7 @@
 
 
   ;;タイトル
-  (def-v *title* (new-title "galaga like game" #'new-game-callback))
+  (def-v *title* (new-title "cow galaga" #'new-game-callback))
 
 
   ;;変数
@@ -25,6 +25,17 @@
   (def-v enemy-atack-wait-default 5)
   (def-v enemy-atack-wait 5)
 
+  (def-v level-max 49)
+  (def-enum 'enemy-type '(red yellow blue))
+
+  (def-v enemy-bounce-right-x 5)
+  (def-v enemy-bounce-left-x -5)
+  (def-v enemy-offset-x 0)
+  (def-v enemy-offset-y 0)
+  (def-v enemy-offset-angle 0)
+  (def-v enemy-offset-speed 1)
+  
+
   ;;view
   (def-v message-label (new-label 34 2 7 3 "message"))
   (def-v label-stage (new-label 34 6 7 3 "Stage:"))  
@@ -34,6 +45,8 @@
   ;;obj
   ;; (def-v label-player (new-label 20 34 3 3 "P"))
   (def-v player-obj nil)
+
+  
 
 
   ;;shootng
@@ -53,6 +66,23 @@
   (def-v mode mode-main)
   (def-v level 0)
   
+  (def-v event-list
+  `(
+    ;level 0
+    (
+     ,(make-event :block 1 :turn 0 :enemy red)
+     ,(make-event :block 2 :turn 5 :enemy yellow)
+     )
+    ;level 1
+    (
+     ,(make-event :block 1 :turn 0 :enemy red)
+     ,(make-event :block 2 :turn 5 :enemy yellow)
+     ,(make-event :block 3 :turn 5 :enemy red)
+     ,(make-event :block 4 :turn 20 :enemy blue)
+     )
+    )
+  )
+
    
 );end-variable
 
@@ -94,28 +124,58 @@
 
 (defparameter map
   '(
-	;;stage0
+	;;level0
 	(
-	 ( 0 0 0 0 0 0 0 0 0 0 )
-	 ( 0 0 0 0 0 0 0 0 0 0 )
-	 ( 0 0 0 0 0 0 0 0 0 0 )
-	 ( 0 0 0 0 0 0 0 0 0 0 )
-	 ( 0 0 0 0 1 1 0 0 0 0 )
+	 ( 0 0 0 0 0 0 0 0 )
+	 ( 0 0 0 0 0 0 0 0 )
+	 ( 0 0 0 0 0 0 0 0 )
+	 ( 0 0 2 1 1 2 0 0 )
+	 ( 0 0 2 1 1 2 0 0 )
 	 )
-	;;stage1
+	;;level1
 	(
-	 ( 0 0 0 0 3 3 0 0 0 0 )
-	 ( 0 0 2 2 2 2 2 2 0 0 )
-	 ( 0 0 2 2 2 2 2 2 0 0 )
-	 ( 1 1 1 1 1 1 1 1 1 1 )
-	 ( 1 1 1 1 1 1 1 1 1 1 )
+	 ( 0 0 0 4 4 0 0 0 )
+	 ( 0 3 2 2 2 2 3 0 )
+	 ( 0 3 2 2 2 2 3 0 )
+	 ( 1 1 1 1 1 1 1 1 )
+	 ( 1 1 1 1 1 1 1 1 )
 	 )
 	)
 )
 
-(defparameter event-list
-  '(
-    (
+(defstruct (event)
+  block
+  turn
+  enemy
+)
+
+
+
+(def-f get-event-list-level (level)
+  (elt event-list level)
+)
+
+(def-f get-event (level block)
+  (let (level-event-list event)
+    (setq level-event-list (get-event-list-level level))
+    (for (i 0 (length level-event-list))
+      (setq event (elt level-event-list i))
+	 (if (eql @event.block block)
+	     (return-from get-event event)
+	     )
+	 );for
+       );let
+  nil
+)
+
+(def-f get-event-list-turn (level turn)
+
+  (let (level-event-list event r-list)
+    (setq r-list
+	  (map 'list (lambda(event)(if (equal @event.turn turn) event nil)) (get-event-list-level level))
+	  );setq
+    r-list
+    );let
 )
 
 (def-f init-stage( level )
@@ -131,15 +191,21 @@
   (setq enemy-map 
 		(elt map level)
 		)
-  (let (map-w map-h type-no)
+
+  (let (map-w map-h block-no block-event type-no)
 	(setq map-w (length (vec-get enemy-map 0)))
 	(setq map-h (length enemy-map))
 	(for (i 0 map-h)
 	  (for (j 0 map-w)
 
-		(setq type-no (vec-get (vec-get enemy-map i) j))
+		(setq block-no (vec-get (vec-get enemy-map i) j))
+		(setq block-event (get-event level block-no))
+		(setq type-no 0)
+		(if (not (equal block-event nil))
+		 (setq type-no @block-event.enemy)
+		 )
 		
-		(if (not (= type-no 0) )
+		(if (not (= block-no 0) )
 			(generate-enemy 
 			 (* (+ enemy-map-x j) enemy-w)
 			 (* (+ enemy-map-y i) enemy-h) 
@@ -159,6 +225,10 @@
 
 )
 
+(def-f generate-event-enemys(event-array)
+  
+)
+
 
 ;画面更新
 (def-f update-score()
@@ -175,6 +245,44 @@
 
   (shooting-forward shooting)
 
+  ;;敵集団移動
+  (let (enemy-vec move-angle)
+    (setq enemy-vec (world-get-obj-vec shooting 'enemy))
+
+    (for (i 0 (length enemy-vec))
+      (world-move-obj shooting (vec-get enemy-vec i) 
+		      (get-move-x-rad enemy-offset-angle enemy-offset-speed)
+		      (get-move-y-rad enemy-offset-angle enemy-offset-speed))
+
+      );for
+
+    ;angle change
+    (print enemy-offset-angle)
+    (if (equal enemy-offset-angle 0)
+	(+= enemy-offset-x 1))
+    (if (equal enemy-offset-angle 180)
+	(+= enemy-offset-x -1))
+    (if (equal enemy-offset-angle 90)
+	(+= enemy-offset-y 1)
+	)
+
+    (cond 
+       ( (> enemy-offset-x enemy-bounce-right-x)
+       (if (equal enemy-offset-angle 0)
+	   (setq enemy-offset-angle 90)
+	   (setq enemy-offset-angle 180)       
+	   )
+       );right bounce
+       ( (< enemy-offset-x enemy-bounce-left-x)
+       (if (equal enemy-offset-angle 180)
+	   (setq enemy-offset-angle 90)
+	   (setq enemy-offset-angle 0)       
+	   )
+       );left bounce
+      );cond
+    (print enemy-offset-angle)
+
+    );let
   
 
   ;;ヒットチェックとダメージ
@@ -212,15 +320,6 @@
  	  (show-clear)
 	  )
 
-;;   ;;壁衝突チェック
-;;   (if (check-hit-wall)
-;; 	  (clash-player)
-;; 	  )
-
-;;   ;;ゲームオーバーチェック
-;;   (if (check-gameover)
-;; 	  (show-gameover)
-;; 	  )
 )
 
 ;;Nextボタン。次のターンに進める
@@ -308,9 +407,9 @@
 (def-f generate-enemy (x y w h type-no)
 
   (let (obj-str)
-	(if (= type-no 1) (setq obj-str "e"))
-	(if (= type-no 2) (setq obj-str "E"))
-	(if (= type-no 3) (setq obj-str "B"))
+	(if (= type-no red) (setq obj-str "e"))
+	(if (= type-no yellow) (setq obj-str "E"))
+	(if (= type-no blue) (setq obj-str "B"))
 
 	(new-shooting-obj
 	 shooting
@@ -443,5 +542,7 @@
    "|")
   
 )
+
+
 
 
