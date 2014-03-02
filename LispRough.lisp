@@ -880,7 +880,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   default
   min
   max
-  add
+;;   add
 )
 (defun new-parameter (default min max)
   (make-parameter
@@ -1242,28 +1242,166 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-
-;;SHOOTINGクラス
-;;STGのオブジェクトと敵の配置管理
-(defstruct (shooting (:include object)) 
-  x y w h  
+;;Worldクラス
+;;Shootingと似た構成だが、親クラス的な立ち位置で設計しながら使っていく
+;;ターン毎のイベントとオブジェクトの登録や当たり判定に加え、
+;;WorldTypeに応じた動作を行なう
+;;Actionタイプならば、重力判定など
+;;タイプごとのオブジェクト生成メソッドを持つ
+;;
+(defstruct (world (:include object))
+  x y w h
   vec-obj
-  )
+  bg-label
+)
 
-(defstruct (shooting-obj(:include object))
-  x y w h 
+(defstruct (world-obj (:include object))
+  x y w h
   type
-  speed
-  angle 
   label
-  hp 
-  no-damage ;;ダメージを受けない
-  atack-body ;;衝突の際にダメージを与える
+  speed
+  angle
+  hp
+  no-hit ;;ヒット判定を行わない
+  no-damage
   dead-effect ;;死亡エフェクトフラグ
+  dead-effect-timer
+  dead-effect-wait
+  hit-flag ;;ヒットフラグ
+)
+
+;;基本の進行関数
+(defun world-forward (world)
+  
+  ;;死亡エフェクト処理
+  (for-- (i (- (length @world.vec-obj) 1) 0)
+	(let (obj)
+	  (setf obj (elt @world.vec-obj i))
+	  (cond 
+		(@obj.dead-effect
+		  (++ @obj.dead-effect-timer)
+		  (print @obj.dead-effect-wait)
+		  (if (>= @obj.dead-effect-timer @obj.dead-effect-wait)
+			  (world-remove-obj world obj)
+			  );if
+		  );check-dead
+		);cond
+	  );let
+	);for
+
+)
+
+;;指定のタイプのオブジェクト同士の衝突をチェックし、ヒットフラグON
+;;このメソッドでは衝突した双方のヒットフラグをON
+(defun world-hit-check ( world type1 type2 )
+  
+  (let (vec1 vec2 obj1 obj2)
+	(setq vec1 (world-get-obj-vec world type1))
+	(setq vec2 (world-get-obj-vec world type2))
+
+	(for (i 0 (length vec1))
+	  (for (j 0 (length vec2))
+		(setq obj1 (vec-get vec1 i))
+		(setq obj2 (vec-get vec2 j))
+		(cond 
+		  ((and 
+			;;check no-hit
+			(and (not @obj1.no-hit) (not @obj2.no-hit))
+			;;hitcheck
+			(hitcheck-rect-in-rect 
+			 @obj1.x @obj1.y @obj1.w @obj1.h
+			 @obj2.x @obj2.y @obj2.w @obj2.h)
+			)
+		   (setf @obj1.hit-flag t)
+		   (setf @obj2.hit-flag t)
+		   )
+		  );cond
+		
+		));for
+
+	);let
+)
+;;指定のタイプのオブジェクト配列を取得
+;;指定のタイプが無ければnilを返す
+(defun world-get-obj-vec ( world type )
+  (let (r-list)
+	(setq r-list 
+		  (remove-if #'(lambda (obj) (not (equal @obj.type type))) @world.vec-obj)
+		  );set
+	(if (equal 0 (length r-list))
+		(setq r-list nil)
+		)
+	r-list
+	);let
+)
+
+;;指定のタイプからランダムでひとつ取得
+(defun world-get-obj-random (world type)
+  (let (type-vec r-obj)
+	(setq type-vec (world-get-obj-vec world type))
+	(if (not (equal nil type-vec))
+	 (setq r-obj
+		   (elt type-vec (random (length type-vec)));random select
+		   );set
+	 )
+	r-obj
+	);let
+)
+
+;;指定のオブジェクトをリストから除外、UIも削除する
+(defun world-remove-obj (world obj)
+  (gob-remove @obj.label)
+  (vec-remove-if @world.vec-obj obj)
 )
 
 
-(defun new-shooting ( x y w h )
+;;複数消すとその過程で詰めるのでクラッシュします。後で対応
+(defun world-remove-obj-vec (world obj-vec)
+  (map 'list (lambda(obj)(world-remove-obj world obj )) obj-vec)
+)
+
+(defun world-remove-all-obj (world)
+  (map 'list (lambda(obj)(world-remove-obj world obj )) (reverse @world.vec-obj))
+)
+
+(defun world-move-obj (world obj x y)
+  (world-set-obj world obj (+ @obj.x x)  (+@obj.y y))
+)
+
+(defun world-set-obj (world obj x y)
+  (setf @obj.x x)
+  (setf @obj.y y)
+  (setf @obj.label.x @obj.x)
+  (setf @obj.label.y @obj.y)
+)
+
+;;死亡処理
+(defun world-dead-obj (world obj dead-str wait)
+  (setf @obj.dead-effect t)
+  (setf @obj.dead-effect-wait wait)
+  (setf @obj.dead-effect-timer 0)
+  (setf @obj.label.text dead-str)
+)
+
+
+
+;;SHOOTINGクラス
+;;STGのオブジェクトと敵の配置管理
+;; (defstruct (shooting (:include object)) 
+;;   x y w h  
+;;   vec-obj
+;;   )
+(defstruct (shooting (:include world)) 
+  )
+
+;; (defstruct (shooting-obj(:include object))
+(defstruct (shooting-obj(:include world-obj))
+  atack-body ;;衝突の際にダメージを与える
+  team-no;;所属チーム番号
+)
+
+
+(defun new-shooting ( x y w h)
 
   (let (r-shooting vec-obj)
 	(setq vec-obj (new-vec))
@@ -1303,6 +1441,7 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 		   :no-damage nil
 		   :atack-body nil
 		   :dead-effect nil
+		   :team-no 0
 		   )
 		  )
 
@@ -1403,6 +1542,18 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 	);let
 )
+(defun world-damage-conflict-object ( world type1 type2 )
+
+  (world-hit-check world type1 type2)
+  (let (vec1 vec2 obj1 obj2)
+	(setq vec1 (world-get-obj-vec world type1))
+	(setq vec2 (world-get-obj-vec world type2))
+	(map 'list (lambda(obj) (if @obj.hit-flag (-= @obj.hp 1))) vec1)
+	(map 'list (lambda(obj) (if @obj.hit-flag (-= @obj.hp 1))) vec2)
+
+	);let
+  
+)
 
 
 ;;>>>>>>>>>>worldに統合. shooting専用関数は廃止予定
@@ -1424,112 +1575,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 
 
 
-;;Worldクラス
-;;Shootingと似た構成だが、親クラス的な立ち位置で設計しながら使っていく
-;;ターン毎のイベントとオブジェクトの登録や当たり判定に加え、
-;;WorldTypeに応じた動作を行なう
-;;Actionタイプならば、重力判定など
-;;タイプごとのオブジェクト生成メソッドを持つ
-;;
-(defstruct (world (:include object))
-  x y w h
-  vec-obj
-  bg-label
-)
-
-(defstruct (world-obj (:include object))
-  x y w h
-  type
-  label
-  speed
-  angle
-  hp
-  no-damage
-  dead-effect ;;死亡エフェクトフラグ
-  dead-effect-timer
-  dead-effect-wait
-  hit-flag ;;ヒットフラグ
-)
-
-;;基本の進行関数
-(defun world-forward (world)
-  
-  ;;死亡エフェクト処理
-  (for-- (i (- (length @world.vec-obj) 1) 0)
-	(let (obj)
-	  (setf obj (elt @world.vec-obj i))
-	  (cond 
-		(@obj.dead-effect
-		  (++ @obj.dead-effect-timer)
-		  (print @obj.dead-effect-wait)
-		  (if (>= @obj.dead-effect-timer @obj.dead-effect-wait)
-			  (world-remove-obj world obj)
-			  );if
-		  );check-dead
-		);cond
-	  );let
-	);for
-
-)
-
-;;指定のタイプのオブジェクト同士の衝突をチェックし、ヒットフラグON
-;;このメソッドでは衝突した双方のヒットフラグをON
-(defun world-hit-check ( world type1 type2 )
-  
-  (let (vec1 vec2 obj1 obj2)
-	(setq vec1 (world-get-obj-vec world type1))
-	(setq vec2 (world-get-obj-vec world type2))
-
-	(for (i 0 (length vec1))
-	  (for (j 0 (length vec2))
-		(setq obj1 (vec-get vec1 i))
-		(setq obj2 (vec-get vec2 j))
-		(cond 
-		  ((hitcheck-rect-in-rect 
-			@obj1.x @obj1.y @obj1.w @obj1.h
-			@obj2.x @obj2.y @obj2.w @obj2.h)
-		   (setf @obj1.hit-flag t)
-		   (setf @obj2.hit-flag t)
-		   )
-		  );cond
-		
-		));for
-
-	);let
-)
-;;指定のタイプのオブジェクト配列を取得
-(defun world-get-obj-vec ( world type )
-  (remove-if #'(lambda (obj) (not (equal @obj.type type))) @world.vec-obj)
-)
-
-;;指定のオブジェクトをリストから除外、UIも削除する
-(defun world-remove-obj (world obj)
-  (gob-remove @obj.label)
-  (vec-remove-if @world.vec-obj obj)
-)
-
-(defun world-remove-obj-vec (world obj-vec)
-  (map 'list (lambda(obj)(world-remove-obj world obj )) obj-vec)
-)
-
-(defun world-move-obj (world obj x y)
-  (world-set-obj world obj (+ @obj.x x)  (+@obj.y y))
-)
-
-(defun world-set-obj (world obj x y)
-  (setf @obj.x x)
-  (setf @obj.y y)
-  (setf @obj.label.x @obj.x)
-  (setf @obj.label.y @obj.y)
-)
-
-;;死亡処理
-(defun world-dead-obj (world obj dead-str wait)
-  (setf @obj.dead-effect t)
-  (setf @obj.dead-effect-wait wait)
-  (setf @obj.dead-effect-timer 0)
-  (setf @obj.label.text dead-str)
-)
 
 
 ;;アクションワールド

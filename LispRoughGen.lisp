@@ -472,3 +472,17 @@ test
 
 
 
+(defun convert-method-str ( source target class-name )
+
+  (if (equal target 'winapi)
+	  (load "./convert_winapi.lisp"))
+  (if (equal target 'enchant-js)
+	  (load "./convert_enchantjs.lisp"))
+;;   (make-method-define-str "c:/Lisp/LispCode/hi_low.lisp" "hilow")
+
+  (let (def-f-obj)
+	(setq def-f-obj (cdr (read-from-string source)))
+	(convert-f-define class-name def-f-obj )
+	);let
+
+)

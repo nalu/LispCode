@@ -41,7 +41,8 @@
 		( new-button . convert-new-button  )
 		( new-label . convert-new-label )
 		( new-vec . convert-new-vec )
-
+		( new-parameter . convert-new-parameter)
+		( new-guage . convert-new-guage)
 		)
 	  )
 (defparameter *init-value-convert-alist*
@@ -134,6 +135,14 @@
 (defun convert-new-vec (num )
   (format nil 
 		  "[]" 		  )
+)
+
+(defun convert-new-parameter (default min max)
+  (format nil "new Parameter( ~d ~d ~d)" default min max)
+)
+
+(defun convert-new-guage ( x y w h title parameter )
+  (format nil "new Guage( ~d ~d ~d ~d ~a ~a)" x y w h title parameter)
 )
 
 
@@ -254,7 +263,6 @@
   (setq target (replace-string-all target ".*INTEGER.*" "var"))
   (setq target (replace-string-all target ".*STRING.*" "var"))
   (setq target (replace-string-all target ".*VECTOR.*" "var"))
-
   target
 )
 

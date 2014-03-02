@@ -7,10 +7,6 @@
 (defun game-variable()
 
 
-  ;;タイトル
-  (def-v *title* (new-title "cow galaga" #'new-game-callback))
-
-
   ;;変数
   (def-v player-speed 1)
   (def-v bullet-speed 3)
@@ -33,7 +29,9 @@
   (def-v enemy-offset-x 0)
   (def-v enemy-offset-y 0)
   (def-v enemy-offset-angle 0)
-  (def-v enemy-offset-speed 1)
+   (def-v enemy-offset-speed 1)
+
+  (def-v stage-turn 0)
   
 
   ;;view
@@ -44,7 +42,7 @@
 
   ;;obj
   ;; (def-v label-player (new-label 20 34 3 3 "P"))
-  (def-v player-obj nil)
+  (def-v player nil)
 
   
 
@@ -63,7 +61,7 @@
 
   ;;ゲーム状態遷移
   (def-enum 'mode '(mode-title mode-ready mode-main mode-clear mode-gameover mode-score))
-  (def-v mode mode-main)
+  (def-v mode mode-title)
   (def-v level 0)
   
   (def-v event-list
@@ -77,7 +75,7 @@
     (
      ,(make-event :block 1 :turn 0 :enemy red)
      ,(make-event :block 2 :turn 5 :enemy yellow)
-     ,(make-event :block 3 :turn 5 :enemy red)
+     ,(make-event :block 3 :turn 6 :enemy red)
      ,(make-event :block 4 :turn 20 :enemy blue)
      )
     )
@@ -97,6 +95,7 @@
 )
 
 (def-f game-init()
+  (show-title)
 )
 
 
@@ -111,6 +110,17 @@
   (init-gamemain)
 )
 
+(def-f clear-callback()
+  (++ level)
+  (init-stage level)
+)
+(def-f gameover-callback()
+  (show-title)
+)
+
+(def-f show-title()
+  (new-title "cow galaga" #'new-game-callback)
+)  
 
 ;;ゲームメイン初期化
 
@@ -140,7 +150,7 @@
 	 ( 1 1 1 1 1 1 1 1 )
 	 ( 1 1 1 1 1 1 1 1 )
 	 )
-	)
+	);
 )
 
 (defstruct (event)
@@ -168,14 +178,30 @@
   nil
 )
 
+;;ターンの一致するイベントリストを取得
 (def-f get-event-list-turn (level turn)
 
   (let (level-event-list event r-list)
     (setq r-list
 	  (map 'list (lambda(event)(if (equal @event.turn turn) event nil)) (get-event-list-level level))
 	  );setq
+	(setq r-list (remove nil r-list))
     r-list
     );let
+)
+
+;;ブロックに対応する位置の敵を取得
+(def-f get-enemy-list-block( shooting-world block-no )
+
+  (let (enemy-vec r-list)
+	(setq enemy-vec (world-get-obj-vec shooting-world 'enemy))
+	(setq r-list
+		  (map 'list (lambda(obj) (if (equal @obj.team-no block-no) obj)) enemy-vec)
+		  );set
+	(setf r-list (remove nil r-list))
+	r-list
+  );let
+  
 )
 
 (def-f init-stage( level )
@@ -183,7 +209,9 @@
 
   ;;ステージ開始時初期化
   (setq enemy-atack-wait enemy-atack-wait-default)
-
+  (setq stage-turn 0)
+  (world-remove-all-obj shooting)
+  (setq mode mode-main)
   
 
   ;;マップ
@@ -212,6 +240,8 @@
 			 enemy-w 
 			 enemy-h
 			 type-no
+			 block-no
+			 t
 			 )
 			);if
 
@@ -222,7 +252,7 @@
 
   ;;plyer
   (generate-player 20 34 3 3)
-
+  (setq player (elt (world-get-obj-vec shooting 'player) 0))
 )
 
 (def-f generate-event-enemys(event-array)
@@ -243,7 +273,33 @@
 ;;ターンを進める
 (def-f next-turn()
 
+  (if (equal mode mode-clear)
+	  (return-from next-turn)
+	  )
+
+  (if (equal mode mode-gameover)
+	  (return-from next-turn)
+	  )
+
   (shooting-forward shooting)
+
+  ;;ターンイベント
+  (let (turn-event-list turn-event block-enemy-list enemy)
+	(setf turn-event-list (get-event-list-turn level stage-turn))
+	(for (i 0 (length turn-event-list))
+	  (setq turn-event (elt turn-event-list i))
+	  (setq block-enemy-list (get-enemy-list-block shooting @turn-event.block))
+	  (for (j 0 (length block-enemy-list))
+		(setq enemy (elt block-enemy-list j))
+		(print enemy)
+		(appear-enemy enemy)
+		);for block enemy
+	  );for turn event
+	);let
+
+  ;;ターンカウント
+  (++ stage-turn)
+
 
   ;;敵集団移動
   (let (enemy-vec move-angle)
@@ -286,8 +342,10 @@
   
 
   ;;ヒットチェックとダメージ
-  (damage-conflict-object shooting 'enemy 'player-bullet)
-  (damage-conflict-object shooting 'player 'enemy-bullet)
+;;   (damage-conflict-object shooting 'enemy 'player-bullet)
+;;   (damage-conflict-object shooting 'player 'enemy-bullet)
+  (world-damage-conflict-object shooting 'enemy 'player-bullet)
+  (world-damage-conflict-object shooting 'player 'enemy-bullet)
 
   ;;デッドエフェクト終了のものを削除
   
@@ -320,6 +378,11 @@
  	  (show-clear)
 	  )
 
+  ;;ゲームオーバーチェック
+  (if (check-gameover)
+	  (show-gameover)
+	  )
+
 )
 
 ;;Nextボタン。次のターンに進める
@@ -335,6 +398,7 @@
 
 (def-f push-right()
 ;;   (next-turn)
+  
   (move-player player-speed 0)
   (next-turn)
 )
@@ -383,6 +447,7 @@
      0
      0
      "P")
+
 )
 
 ;;自機ショット
@@ -404,27 +469,37 @@
 )
 
 ;;敵作成
-(def-f generate-enemy (x y w h type-no)
+(def-f generate-enemy (x y w h type-no team-no hide)
 
-  (let (obj-str)
+  (let (obj-str obj)
 	(if (= type-no red) (setq obj-str "e"))
 	(if (= type-no yellow) (setq obj-str "E"))
 	(if (= type-no blue) (setq obj-str "B"))
 
-	(new-shooting-obj
+	(setq obj (new-shooting-obj
 	 shooting
-	 ;; (* x w)
-	 ;; (* y h)
 	 x y
 	 w h
 	 'enemy
 	 enemy-speed
 	 270
-	 obj-str)
+	 obj-str))
+
+	(setf @obj.team-no team-no)
+
+	(if hide
+	   (setf @obj.label.visible nil)
+	   (setf @obj.no-hit t)
+	   );hide
 	
   );let
 )
 
+;;敵のマップ位置出現
+(def-f appear-enemy (enemy)
+  (setf @enemy.label.visible t)
+  (setf @enemy.no-hit nil)
+)
 
 
 ;;ステージクリアチェック
@@ -456,6 +531,7 @@
 	 );cond
   );let
 )
+
 
 
 ;;死亡処理
@@ -499,22 +575,26 @@
 )
 
 (def-f show-clear()
-  (set-text message-label "clear")
-  (++ level)
-  (init-stage level)
+  
+;;   (setf @player.no-hit t)
+  (setf mode mode-clear)
+  (new-title "clear" #'clear-callback)
+
   );
 
 ;;ゲームオーバーチェック
 (def-f check-gameover()
 
-  (if (<= *fuel* 0 )
+  (if (<= @player.hp 0 )
 	  t
 	  nil
 	  )
 )
 
 (def-f show-gameover()
-  (set-text *message-label* "gameover")
+  (set-text message-label "gameover")
+  (setf mode mode-gameover)
+  (new-title "gameover" #'gameover-callback)
 )
 
 
@@ -523,9 +603,9 @@
 ;;敵攻撃
 (def-f atack-random-enemy()
   (let (enemy-vec enemy)
-	(setq enemy-vec (shooting-get-vec-object shooting 'enemy))
-	(setq enemy (elt enemy-vec (random (length enemy-vec))))
-	(atack-enemy enemy)
+	(setq enemy (world-get-obj-random shooting 'enemy))
+	(if enemy
+		(atack-enemy enemy))
 	);let
 )
 
@@ -542,6 +622,8 @@
    "|")
   
 )
+
+
 
 
 
