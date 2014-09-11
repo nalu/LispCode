@@ -162,7 +162,7 @@
   (let (func-name param-name body-source body-convert)
 	(setq func-name (car def-f-obj))
 	(setq param-name (cadr def-f-obj))
-	(setq body-source (cddr def-f-obj))
+	(setq body-source (caddr def-f-obj))
 
 	(setq func-name (convert-syntax-symbol func-name))
 
@@ -172,15 +172,15 @@
 		   (convert-parameter-list-to-string
 			param-name)))
 
-;; 	(setq body-convert
-;; 		  (convert-function-source body-source)
-;; 		  )
+	(setq body-convert
+		  (convert-function-source body-source)
+		  )
 
 	(format nil "~a:function(~a)~%{~%/*~%~a~%~%lisp >>> target~%~%~a~%~%*/~%},~%" 
 			func-name ;関数名
 			param-name ;引数
 			body-source ;本体(lisp)
-			body-convert ;
+			(string-downcase (format nil "~a" body-convert))
 			)
 	);let
 
@@ -267,3 +267,235 @@
 )
 
 
+
+;;関数内部記述を対象環境に対応するように変換
+;;確実な対応は不可能なので、ピックアップして使える補助的なものとしてざっくり変換
+(defparameter etst nil)
+(defparameter *symbol-convert-alist*
+  '(
+	( setq . =)
+	( setf . =)
+	( print . console.log)
+	( equal . == )
+	( not . !)
+	( let . var)
+	( t . true )
+;; 	( nil . null ) ;;error
+
+	)
+)
+;; (defun convert-function-source(src)
+;; ;;   (sublis *symbol-convert-alist* src)
+
+;;   ;;test 1
+;; ;;   (map 'list (lambda(x) 
+;; ;; 			   (
+;; ;; 				cond 
+;; ;; 					  ((consp x) (convert-function-source x))
+;; ;; 					  ((symbolp x) x)
+;; ;; 				)) src)
+
+;;   ;;test 2
+;; ;;   (map 'list (lambda(x) 
+;; ;; 			   (
+;; ;; 				cond 
+;; ;; 					  ((consp x)  
+;; ;; 					   (format nil "~a = ~a" 
+;; ;; 							   (cadr x) 
+;; ;; 							   (convert-function-source (cddr x))))
+;; ;; 					  ((symbolp x) x)
+;; ;; 				)) src)
+
+;;   ;;test 3
+
+;;   (print "-------")
+;;   (print src)
+;;   (cond
+;; 	;;ifのやつ
+;; 	( (equal (car src) 'if)
+;; 	  (format nil "if( ~a ~a )"
+;; 			  (cadr src)
+;; 			  (caddr src)
+;; 			  );format
+;; 	  );equal if
+;; 	;;単純前置後置型のやつ（例：=,+-*/,)
+;; 	( t
+;; 	 (let (converted-symbol first-var second-var var-list ) 
+;; 	   (setf converted-symbol (sublis *symbol-convert-alist* (car src)))
+;; 	   (setf first-var (cadr src))
+;; 	   (if (consp first-var)
+;; 		   (setf first-var (convert-function-source (cadr src))))
+;; 	   (setf second-var (caddr src))
+;; 	   (if (consp second-var)
+;; 		   (setf second-var (convert-function-source (caddr src))))
+;; 	   (setf var-list (cdr src))
+;; ;; 	   (setf var-list (map 'list (lambda(x) (convert-function-source x)) var-list))
+;; 	   (cond
+;; 		 ((consp src)
+;; 			  (format nil "~a ~a ~a"
+;; 					  first-var
+;; 					  converted-symbol
+;; 					  second-var))
+;; 		 ((symbolp src) src)
+;; 		 );cond
+;; 	   ;;   );if
+;; 	   );let
+;; 	 );equal setf
+	
+	
+;; 	);cond
+;; )  
+
+
+
+
+
+
+
+
+
+;;--------------------------------------------------------------------------
+;;ここから基本変換部
+;;enchant/ winapiで共通
+(defparameter *function-convert-alist*
+  '(
+	( setq . (= simple-calc))
+	( setf . (= simple-calc))
+	( + . (+ simple-calc))
+	( - . (- simple-calc))
+	( * . (* simple-calc))
+	( / . (/ simple-calc))
+	( % . (% simple-calc))
+;; 	( print . console.log)
+	( equal . (== simple-calc) )
+	( and . (&& simple-calc) )
+	( not . (! simple-convert))
+	( let . (var increase-variable))
+	( if . (if format-if))
+	( for . (for format-for))
+	)
+)
+
+(defun simple-convert( converted-symbol var-list)
+  (setf var-list 
+		  (recursive-list-convert-function-source var-list)
+		);setf
+  (format nil "~a ~a "
+		  converted-symbol
+		  var-list)
+)
+
+;;単純に左の値を中央に置き換える
+;;主に四則演算に適用するが、(+ a b c) など、
+;;３つ以上の計算は正しく変換されないので注意
+(defun simple-calc(converted-symbol var-list)
+  (setf var-list 
+		  (recursive-list-convert-function-source var-list)
+		);setf
+  (format nil "~a ~a ~a"
+		  (car var-list)
+		  converted-symbol
+		  (cadr var-list))
+)
+
+
+;;let専用。変数宣言文を含めたソースを作成
+(defun increase-variable(converted-symbol var-list)
+  (let (variable-name body-list)
+	(setf variable-name (car var-list))
+	(setf body-list (cdr var-list))
+	(setf body-list
+		  (recursive-list-convert-function-source body-list)
+		  );setf
+	(format nil "~a ~{~a~^,~}; ~% ~{~a;~%~}"
+			converted-symbol
+			variable-name
+			body-list)
+
+	);let
+)
+
+;;if専用
+(defun format-if(converted-symbol var-list)
+  (let (test-src body-list)
+	(setf var-list
+		  (recursive-list-convert-function-source var-list)
+		  );setf
+	(setf test-src (car var-list))
+	(setf body-list (cdr var-list))
+	(format nil "~a( ~a )~%{~%~a~%}"
+			converted-symbol
+			test-src
+			body-list)
+
+	);let
+)
+;;for専用
+(defun format-for(converted-symbol var-list)
+  (let (test-src body-list temp-var-name start-val end-val)
+	(setf test-src (car var-list))
+	(setf body-list (cdr var-list))
+	(setf body-list
+		  (recursive-list-convert-function-source body-list)
+		  );setf
+
+	(setf temp-var-name (car test-src))
+	(setf start-val (cadr test-src))
+	(setf end-val (caddr test-src))
+	(format nil "~a( ~a=~a; ~a<~a; ~a++ )~%{~%~a~%}"
+			converted-symbol
+			temp-var-name
+			start-val
+			temp-var-name
+			end-val
+			temp-var-name
+			body-list)
+
+	);let
+)
+
+(defun recursive-list-convert-function-source (src-list)
+  (map 'list (lambda(x)
+			   (if (listp x)
+				   (convert-function-source x)
+				   x))
+	   src-list)
+)
+
+(defparameter *value-convert-alist*
+  '( 
+	(t . true)
+;; 	(nil . null);;うまく処理できない
+))
+(defun convert-function-source(src)
+  (let (function variable-list format-function converted-symbol )
+
+	(setf function (car src))
+	(setf variable-list (cdr src))
+;; 	(setf variable-list (sublis variable-list *value-convert-alist*));;シンボルを変換
+	
+	;;対応変換関数を取得し、そこに引数リストを渡して実行
+	(setf format-function (caddr (assoc function *function-convert-alist*)))
+	(setf converted-symbol (cadr (assoc function *function-convert-alist*)))
+	;;変換関数が定義済みでなければ引数だけ再帰させて、関数名はそのまま出力
+	;;定義済みなら通常変換
+	(if (equal converted-symbol nil)
+		(format nil "~a ~a" function 
+				(recursive-list-convert-function-source variable-list))
+		(funcall format-function converted-symbol variable-list  )
+		)
+	
+	);let
+
+)
+
+
+(setf etst '((SETQ X (+ X 2)) (PRINT X)))
+(defun convert-symbol(symbol tree alist) 
+  (subst (cdr (assoc symbol alist)) symbol tree)
+)
+(map 'list (lambda(x) (subst (cdr x) (car x) etst)) *symbol-convert-alist*)
+
+(convert-symbol 'setq etst *symbol-convert-alist* )
+
+(sublis *symbol-convert-alist* etst)

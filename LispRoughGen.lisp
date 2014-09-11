@@ -277,6 +277,9 @@ test
 (defun generate-action-js()
   (generate-js "./action.lisp" "ballaction")
 )
+(defun generate-action-win()
+  (generate-cpp "./action.lisp" "ballaction")
+)
 
 ;;html-moniter
 (defun generate-html-moniter()
@@ -486,3 +489,9 @@ test
 	);let
 
 )
+
+(defun testfunc()
+  (convert-method-str  "(defun test(x) ((setq x (+ x 2))(print x)))" 'enchant-js "classname")
+  )
+
+

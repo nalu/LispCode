@@ -342,12 +342,12 @@ this.default_player_jump_power = 4;
 this.enemy_speed = 1;
 this.enemy_w = 3;
 this.enemy_h = 3;
-this.player_stock = (NIL 3 0 3);
-this.score = (NIL 0 0 9999);
+this.player_stock = new Parameter( 3 0 3);
+this.score = new Parameter( 0 0 9999);
 this.enemy_generate_timer = 0;
 this.enemy_generate_wait = 10;
 this.action_world = (NIL 0 0 30 20 1 3);
-this.player = (NIL 3 14 3 3);
+this.player = (NIL 3 12 3 3);
 this.button_next = new Button( 340, 190, 70, 30, "[N]ext", 'N', this.push_next, color_button_default);
 this.button_left = new Button( 340, 250, 70, 30, "[A] Left", 'A', this.push_left, color_button_default);
 this.button_right = new Button( 340, 280, 70, 30, "[D] Right", 'D', this.push_right, color_button_default);
@@ -378,18 +378,22 @@ this.mode = MODE-MAIN;
  
 {
 /*
-(((MAP 'LIST (LAMBDA (X)
-      (CELL-DATA X)
-     )
-     (GRID-CELL-ARRAY GRID)
+((MAP 'LIST (LAMBDA (X)
+     (CELL-DATA X)
     )
+    (GRID-CELL-ARRAY GRID)
    )
   )
  
 
 lisp >>> target
 
-NIL
+NIL (MAP 'LIST (LAMBDA (X)
+    (CELL-DATA X)
+   )
+   (GRID-CELL-ARRAY GRID)
+  )
+  NIL
 
 */
 },
@@ -398,14 +402,14 @@ grid_check_match_r_horizontal:function(grid, cell, require_num, test, match_list
  
 {
 /*
-(((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 0 REQUIRE-NUM TEST MATCH-LIST)
-   )
+((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 0 REQUIRE-NUM TEST MATCH-LIST)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (GRID-CHECK-MATCH-R GRID CELL NIL 0 1 0 REQUIRE-NUM TEST MATCH-LIST)
+  NIL
 
 */
 },
@@ -414,14 +418,14 @@ grid_check_match_r_vertical:function(grid, cell, require_num, test, match_list)
  
 {
 /*
-(((GRID-CHECK-MATCH-R GRID CELL NIL 0 0 1 REQUIRE-NUM TEST MATCH-LIST)
-   )
+((GRID-CHECK-MATCH-R GRID CELL NIL 0 0 1 REQUIRE-NUM TEST MATCH-LIST)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (GRID-CHECK-MATCH-R GRID CELL NIL 0 0 1 REQUIRE-NUM TEST MATCH-LIST)
+  NIL
 
 */
 },
@@ -430,14 +434,14 @@ grid_check_match_r_slanting:function(grid, cell, require_num, test, match_list)
  
 {
 /*
-(((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 1 REQUIRE-NUM TEST MATCH-LIST)
-   )
+((GRID-CHECK-MATCH-R GRID CELL NIL 0 1 1 REQUIRE-NUM TEST MATCH-LIST)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (GRID-CHECK-MATCH-R GRID CELL NIL 0 1 1 REQUIRE-NUM TEST MATCH-LIST)
+  NIL
 
 */
 },
@@ -446,56 +450,98 @@ grid_check_match_r:function(grid, cell, before_cell, match_count, move_x, move_y
  
 {
 /*
-(((LET ((RECURSIVE-FINISH NIL)
+((LET ((RECURSIVE-FINISH NIL)
+    )
+    (IF (NOT (EQUAL (CELL-DATA CELL)
+       NIL)
      )
-     (IF (NOT (EQUAL (CELL-DATA CELL)
-        NIL)
-      )
-      (FUNCALL TEST (CELL-DATA CELL)
-      )
+     (FUNCALL TEST (CELL-DATA CELL)
      )
-     (IF (NOT (EQUAL BEFORE-CELL NIL)
-      )
-      (IF (AND (EQUAL (FUNCALL TEST (CELL-DATA CELL)
-         )
-         T)
-        (EQUAL (FUNCALL TEST (CELL-DATA BEFORE-CELL)
-         )
-         T)
-       )
-       (SETQ MATCH-COUNT (+ MATCH-COUNT 1)
-       )
-       (SETQ RECURSIVE-FINISH T)
-      )
+    )
+    (IF (NOT (EQUAL BEFORE-CELL NIL)
      )
-     (IF (EQUAL RECURSIVE-FINISH NIL)
-      (LET (NEXT-CELL)
-       (SETQ NEXT-CELL (GRID-GET-CELL-FROM-CELL GRID CELL MOVE-X MOVE-Y)
-       )
-       (IF (AND (NOT (EQUAL NEXT-CELL NIL)
-         )
-         (NOT (EQUAL (CELL-DATA NEXT-CELL)
-           NIL)
-         )
+     (IF (AND (EQUAL (FUNCALL TEST (CELL-DATA CELL)
         )
-        (SETQ MATCH-COUNT (GRID-CHECK-MATCH-R GRID NEXT-CELL CELL MATCH-COUNT MOVE-X MOVE-Y REQUIRE-NUM TEST MATCH-LIST)
+        T)
+       (EQUAL (FUNCALL TEST (CELL-DATA BEFORE-CELL)
+        )
+        T)
+      )
+      (SETQ MATCH-COUNT (+ MATCH-COUNT 1)
+      )
+      (SETQ RECURSIVE-FINISH T)
+     )
+    )
+    (IF (EQUAL RECURSIVE-FINISH NIL)
+     (LET (NEXT-CELL)
+      (SETQ NEXT-CELL (GRID-GET-CELL-FROM-CELL GRID CELL MOVE-X MOVE-Y)
+      )
+      (IF (AND (NOT (EQUAL NEXT-CELL NIL)
+        )
+        (NOT (EQUAL (CELL-DATA NEXT-CELL)
+          NIL)
         )
        )
-       (IF (>= MATCH-COUNT (- REQUIRE-NUM 1)
-        )
-        (VEC-PUSH MATCH-LIST (CELL-DATA CELL)
-        )
+       (SETQ MATCH-COUNT (GRID-CHECK-MATCH-R GRID NEXT-CELL CELL MATCH-COUNT MOVE-X MOVE-Y REQUIRE-NUM TEST MATCH-LIST)
+       )
+      )
+      (IF (>= MATCH-COUNT (- REQUIRE-NUM 1)
+       )
+       (VEC-PUSH MATCH-LIST (CELL-DATA CELL)
        )
       )
      )
-     MATCH-COUNT)
-   )
+    )
+    MATCH-COUNT)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (VAR ((RECURSIVE-FINISH NIL)
+   )
+   (IF (! (== (CELL-DATA CELL)
+      NIL)
+    )
+    (FUNCALL TEST (CELL-DATA CELL)
+    )
+   )
+   (IF (! (== BEFORE-CELL NIL)
+    )
+    (IF (AND (== (FUNCALL TEST (CELL-DATA CELL)
+       )
+       TRUE)
+      (== (FUNCALL TEST (CELL-DATA BEFORE-CELL)
+       )
+       TRUE)
+     )
+     (= MATCH-COUNT (+ MATCH-COUNT 1)
+     )
+     (= RECURSIVE-FINISH TRUE)
+    )
+   )
+   (IF (== RECURSIVE-FINISH NIL)
+    (VAR (NEXT-CELL)
+     (= NEXT-CELL (GRID-GET-CELL-FROM-CELL GRID CELL MOVE-X MOVE-Y)
+     )
+     (IF (AND (! (== NEXT-CELL NIL)
+       )
+       (! (== (CELL-DATA NEXT-CELL)
+         NIL)
+       )
+      )
+      (= MATCH-COUNT (GRID-CHECK-MATCH-R GRID NEXT-CELL CELL MATCH-COUNT MOVE-X MOVE-Y REQUIRE-NUM TEST MATCH-LIST)
+      )
+     )
+     (IF (>= MATCH-COUNT (- REQUIRE-NUM 1)
+      )
+      (VEC-PUSH MATCH-LIST (CELL-DATA CELL)
+      )
+     )
+    )
+   )
+   MATCH-COUNT)
+  NIL
 
 */
 },
@@ -504,8 +550,7 @@ game_init:function()
  
 {
 /*
-(NIL)
- 
+NIL
 
 lisp >>> target
 
@@ -518,14 +563,14 @@ push_quit:function()
  
 {
 /*
-(((SETQ *QUIT* 1)
-   )
+((SETQ *QUIT* 1)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (= *QUIT* 1)
+  NIL
 
 */
 },
@@ -534,14 +579,14 @@ new_game_callback:function()
  
 {
 /*
-(((INIT-GAMEMAIN)
-   )
+((INIT-GAMEMAIN)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (INIT-GAMEMAIN)
+  NIL
 
 */
 },
@@ -550,15 +595,15 @@ init_gamemain:function()
  
 {
 /*
-(((SETQ STAGE-NO 0)
-    (INIT-STAGE STAGE-NO)
-   )
+((SETQ STAGE-NO 0)
+   (INIT-STAGE STAGE-NO)
   )
  
 
 lisp >>> target
 
-NIL
+STAGE-NO INIT-STAGE NIL (= STAGE-NO 0)
+  NIL
 
 */
 },
@@ -567,14 +612,14 @@ init_stage:function(stage_no)
  
 {
 /*
-(((SETF ENEMY-GENERATE-TIMER ENEMY-GENERATE-WAIT)
-   )
+((SETF ENEMY-GENERATE-TIMER ENEMY-GENERATE-WAIT)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (= ENEMY-GENERATE-TIMER ENEMY-GENERATE-WAIT)
+  NIL
 
 */
 },
@@ -583,8 +628,7 @@ update_score:function()
  
 {
 /*
-(((SET-TEXT LABEL-SCORE (FORMAT NIL Score:~d (SLOT-VALUE SCORE 'VALUE)
-     )
+((SET-TEXT LABEL-SCORE (FORMAT NIL Score:~d (SLOT-VALUE SCORE 'VALUE)
     )
    )
   )
@@ -592,7 +636,10 @@ update_score:function()
 
 lisp >>> target
 
-NIL
+NIL (SET-TEXT LABEL-SCORE (FORMAT NIL Score:~d (SLOT-VALUE SCORE 'VALUE)
+   )
+  )
+  NIL
 
 */
 },
@@ -601,46 +648,45 @@ next_turn:function()
  
 {
 /*
-(((+= ENEMY-GENERATE-TIMER 1)
-    (COND ((<= ENEMY-GENERATE-WAIT ENEMY-GENERATE-TIMER)
-      (GENERATE-ENEMY 26 20 3 3 ENEMY-TYPE-A)
-      (SETF ENEMY-GENERATE-TIMER 0)
-     )
+((+= ENEMY-GENERATE-TIMER 1)
+   (COND ((<= ENEMY-GENERATE-WAIT ENEMY-GENERATE-TIMER)
+     (GENERATE-ENEMY 26 20 3 3 ENEMY-TYPE-A)
+     (SETF ENEMY-GENERATE-TIMER 0)
     )
-    (ACTION-FORWARD ACTION-WORLD)
-    (LET (ENEMY-VEC)
-     (SETF ENEMY-VEC (WORLD-GET-OBJ-VEC ACTION-WORLD 'ENEMY)
-     )
-     (SETF ENEMY-VEC (REMOVE-IF (LAMBDA (ENEMY)
-        (> (+ (SLOT-VALUE ENEMY 'X)
-          (SLOT-VALUE ENEMY 'W)
-         )
-         0)
-       )
-       ENEMY-VEC)
-     )
-     (WORLD-REMOVE-OBJ-VEC ACTION-WORLD ENEMY-VEC)
+   )
+   (ACTION-FORWARD ACTION-WORLD)
+   (LET (ENEMY-VEC)
+    (SETF ENEMY-VEC (WORLD-GET-OBJ-VEC ACTION-WORLD 'ENEMY)
     )
-    (WORLD-HIT-CHECK ACTION-WORLD 'PLAYER 'ENEMY)
-    (LET (ENEMY-VEC ENEMY)
-     (SETF ENEMY-VEC (WORLD-GET-OBJ-VEC ACTION-WORLD 'ENEMY)
-     )
-     (LENGTH ENEMY-VEC)
-     (FOR-- (I (- (LENGTH ENEMY-VEC)
-        1)
-       0)
-      (SETQ ENEMY (ELT ENEMY-VEC I)
-      )
-      (COND ((AND (SLOT-VALUE ENEMY 'HIT-FLAG)
-         (NOT (SLOT-VALUE ENEMY 'DEAD-EFFECT)
-         )
+    (SETF ENEMY-VEC (REMOVE-IF (LAMBDA (ENEMY)
+       (> (+ (SLOT-VALUE ENEMY 'X)
+         (SLOT-VALUE ENEMY 'W)
         )
-        (COND ((SLOT-VALUE PLAYER 'JUMP-FLAG)
-          (DEAD-ENEMY ENEMY)
-          (ACTION-JUMP ACTION-WORLD PLAYER)
-         )
-         (T (DEAD-PLAYER)
-         )
+        0)
+      )
+      ENEMY-VEC)
+    )
+    (WORLD-REMOVE-OBJ-VEC ACTION-WORLD ENEMY-VEC)
+   )
+   (WORLD-HIT-CHECK ACTION-WORLD 'PLAYER 'ENEMY)
+   (LET (ENEMY-VEC ENEMY)
+    (SETF ENEMY-VEC (WORLD-GET-OBJ-VEC ACTION-WORLD 'ENEMY)
+    )
+    (LENGTH ENEMY-VEC)
+    (FOR-- (I (- (LENGTH ENEMY-VEC)
+       1)
+      0)
+     (SETQ ENEMY (ELT ENEMY-VEC I)
+     )
+     (COND ((AND (SLOT-VALUE ENEMY 'HIT-FLAG)
+        (NOT (SLOT-VALUE ENEMY 'DEAD-EFFECT)
+        )
+       )
+       (COND ((SLOT-VALUE PLAYER 'JUMP-FLAG)
+         (DEAD-ENEMY ENEMY)
+         (ACTION-JUMP ACTION-WORLD PLAYER)
+        )
+        (T (DEAD-PLAYER)
         )
        )
       )
@@ -652,7 +698,9 @@ next_turn:function()
 
 lisp >>> target
 
-NIL
+26 GENERATE-ENEMY 20 (<= ENEMY-GENERATE-WAIT ENEMY-GENERATE-TIMER)
+  ENEMY-GENERATE-TIMER = 0 COND NIL (+= ENEMY-GENERATE-TIMER 1)
+  ACTION-WORLD ACTION-FORWARD NIL
 
 */
 },
@@ -661,14 +709,14 @@ push_next:function()
  
 {
 /*
-(((NEXT-TURN)
-   )
+((NEXT-TURN)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (NEXT-TURN)
+  NIL
 
 */
 },
@@ -677,8 +725,7 @@ push_up:function()
  
 {
 /*
-(NIL)
- 
+NIL
 
 lisp >>> target
 
@@ -691,8 +738,7 @@ push_down:function()
  
 {
 /*
-(NIL)
- 
+NIL
 
 lisp >>> target
 
@@ -705,15 +751,15 @@ push_right:function()
  
 {
 /*
-(((MOVE-PLAYER PLAYER-SPEED 0)
-    (NEXT-TURN)
-   )
+((MOVE-PLAYER PLAYER-SPEED 0)
+   (NEXT-TURN)
   )
  
 
 lisp >>> target
 
-NIL
+NIL NEXT-TURN NIL (MOVE-PLAYER PLAYER-SPEED 0)
+  NIL
 
 */
 },
@@ -722,16 +768,17 @@ push_left:function()
  
 {
 /*
-(((MOVE-PLAYER (- PLAYER-SPEED)
-     0)
-    (NEXT-TURN)
-   )
+((MOVE-PLAYER (- PLAYER-SPEED)
+    0)
+   (NEXT-TURN)
   )
  
 
 lisp >>> target
 
-NIL
+NIL NEXT-TURN NIL (MOVE-PLAYER (- PLAYER-SPEED)
+   0)
+  NIL
 
 */
 },
@@ -740,15 +787,15 @@ push_jump:function()
  
 {
 /*
-(((ACTION-JUMP ACTION-WORLD PLAYER)
-    (NEXT-TURN)
-   )
+((ACTION-JUMP ACTION-WORLD PLAYER)
+   (NEXT-TURN)
   )
  
 
 lisp >>> target
 
-NIL
+NIL NEXT-TURN NIL (ACTION-JUMP ACTION-WORLD PLAYER)
+  NIL
 
 */
 },
@@ -757,14 +804,14 @@ move_player:function(x, y)
  
 {
 /*
-(((WORLD-MOVE-OBJ ACTION-WORLD PLAYER X Y)
-   )
+((WORLD-MOVE-OBJ ACTION-WORLD PLAYER X Y)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (WORLD-MOVE-OBJ ACTION-WORLD PLAYER X Y)
+  NIL
 
 */
 },
@@ -773,17 +820,18 @@ jump_player:function()
  
 {
 /*
-(((SETF (SLOT-VALUE PLAYER 'ANGLE)
-     270)
-    (SETF (SLOT-VALUE PLAYER 'SPEED)
-     10)
-   )
+((SETF (SLOT-VALUE PLAYER 'ANGLE)
+    270)
+   (SETF (SLOT-VALUE PLAYER 'SPEED)
+    10)
   )
  
 
 lisp >>> target
 
-NIL
+PLAYER SLOT-VALUE SPEED QUOTE NIL = 10 (= (SLOT-VALUE PLAYER 'ANGLE)
+   270)
+  NIL
 
 */
 },
@@ -792,14 +840,14 @@ generate_player:function(x, y, w, h)
  
 {
 /*
-(((NEW-ACTION-OBJ ACTION-WORLD X Y W H 'PLAYER 0 0 1 DEFAULT-PLAYER-JUMP-POWER P)
-   )
+((NEW-ACTION-OBJ ACTION-WORLD X Y W H 'PLAYER 0 0 1 DEFAULT-PLAYER-JUMP-POWER P)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (NEW-ACTION-OBJ ACTION-WORLD X Y W H 'PLAYER 0 0 1 DEFAULT-PLAYER-JUMP-POWER P)
+  NIL
 
 */
 },
@@ -808,26 +856,38 @@ generate_enemy:function(x, y, w, h, type_no)
  
 {
 /*
-(((LET (OBJ-STR)
-     (SETQ OBJ-STR ?)
-     (IF (= TYPE-NO ENEMY-TYPE-A)
-      (SETQ OBJ-STR e)
-     )
-     (IF (= TYPE-NO ENEMY-TYPE-B)
-      (SETQ OBJ-STR E)
-     )
-     (IF (= TYPE-NO ENEMY-TYPE-C)
-      (SETQ OBJ-STR B)
-     )
-     (NEW-ACTION-OBJ ACTION-WORLD X Y W H 'ENEMY ENEMY-SPEED 180 1 0 OBJ-STR)
+((LET (OBJ-STR)
+    (SETQ OBJ-STR ?)
+    (IF (= TYPE-NO ENEMY-TYPE-A)
+     (SETQ OBJ-STR e)
     )
+    (IF (= TYPE-NO ENEMY-TYPE-B)
+     (SETQ OBJ-STR E)
+    )
+    (IF (= TYPE-NO ENEMY-TYPE-C)
+     (SETQ OBJ-STR B)
+    )
+    (NEW-ACTION-OBJ ACTION-WORLD X Y W H 'ENEMY ENEMY-SPEED 180 1 0 OBJ-STR)
    )
   )
  
 
 lisp >>> target
 
-NIL
+NIL (VAR (OBJ-STR)
+   (= OBJ-STR ?)
+   (IF (= TYPE-NO ENEMY-TYPE-A)
+    (= OBJ-STR e)
+   )
+   (IF (= TYPE-NO ENEMY-TYPE-B)
+    (= OBJ-STR E)
+   )
+   (IF (= TYPE-NO ENEMY-TYPE-C)
+    (= OBJ-STR B)
+   )
+   (NEW-ACTION-OBJ ACTION-WORLD X Y W H 'ENEMY ENEMY-SPEED 180 1 0 OBJ-STR)
+  )
+  NIL
 
 */
 },
@@ -836,18 +896,18 @@ dead_enemy:function(obj)
  
 {
 /*
-(((WORLD-DEAD-OBJ OBJ OBJ x 3)
-    (SETF (SLOT-VALUE OBJ 'SPEED)
-     0)
-    (PARAMETER-ADD SCORE 1)
-    (UPDATE-SCORE)
-   )
+((WORLD-DEAD-OBJ OBJ OBJ x 3)
+   (SETF (SLOT-VALUE OBJ 'SPEED)
+    0)
+   (PARAMETER-ADD SCORE 1)
+   (UPDATE-SCORE)
   )
  
 
 lisp >>> target
 
-NIL
+OBJ SLOT-VALUE SPEED QUOTE NIL = 0 (WORLD-DEAD-OBJ OBJ OBJ x 3)
+  SCORE PARAMETER-ADD 1
 
 */
 },
@@ -856,16 +916,39 @@ dead_player:function()
  
 {
 /*
-(((SETF (SLOT-VALUE (SLOT-VALUE PLAYER 'LABEL)
-      'TEXT)
-     x)
-   )
+((SETF (SLOT-VALUE (SLOT-VALUE PLAYER 'LABEL)
+     'TEXT)
+    x)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (= (SLOT-VALUE (SLOT-VALUE PLAYER 'LABEL)
+    'TEXT)
+   x)
+  NIL
+
+*/
+},
+
+fresh_player:function()
+ 
+{
+/*
+((SETF (SLOT-VALUE PLAYER 'DEAD-EFFECT)
+    NIL)
+   (SETF (SLOT-VALUE (SLOT-VALUE PLAYER 'LABEL)
+     'TEXT)
+    P)
+  )
+ 
+
+lisp >>> target
+
+PLAYER SLOT-VALUE LABEL QUOTE NIL SLOT-VALUE TEXT QUOTE NIL = P (= (SLOT-VALUE PLAYER 'DEAD-EFFECT)
+   NIL)
+  NIL
 
 */
 },
@@ -874,16 +957,18 @@ show_clear:function()
  
 {
 /*
-(((SET-TEXT MESSAGE-LABEL clear)
-    (++ STAGE-NO)
-    (INIT-STAGE STAGE-NO)
-   )
+((SETF (SLOT-VALUE MESSAGE-LABEL 'TEXT)
+    clear)
+   (++ STAGE-NO)
+   (INIT-STAGE STAGE-NO)
   )
  
 
 lisp >>> target
 
-NIL
+STAGE-NO ++ NIL (= (SLOT-VALUE MESSAGE-LABEL 'TEXT)
+   clear)
+  STAGE-NO INIT-STAGE NIL
 
 */
 },
@@ -892,15 +977,16 @@ check_gameover:function()
  
 {
 /*
-(((IF (<= *FUEL* 0)
-     T NIL)
-   )
+((IF (<= *FUEL* 0)
+    T NIL)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (IF (<= *FUEL* 0)
+   TRUE NIL)
+  NIL
 
 */
 },
@@ -909,14 +995,16 @@ show_gameover:function()
  
 {
 /*
-(((SET-TEXT *MESSAGE-LABEL* gameover)
-   )
+((SETF (SLOT-VALUE MESSAGE-LABEL 'TEXT)
+    gameover)
   )
  
 
 lisp >>> target
 
-NIL
+NIL (= (SLOT-VALUE MESSAGE-LABEL 'TEXT)
+   gameover)
+  NIL
 
 */
 },

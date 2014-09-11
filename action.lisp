@@ -27,9 +27,12 @@
   (def-v enemy-generate-wait 10)
 
 
+  
+
+
   ;;Action World
   (def-v action-world (new-action-world 0 0 30 20 1 3))
-  (def-v player (generate-player 3 14 3 3))
+  (def-v player (generate-player 3 12 3 3))
 
   
   ;;入力
@@ -132,7 +135,7 @@
   ;;プレイヤーがジャンプ中はヒットしたら敵が死亡
   (let (enemy-vec enemy)
 	(setf enemy-vec (world-get-obj-vec action-world 'enemy))
-	(length enemy-vec)
+;; 	(length enemy-vec)
  	(for-- (i (- (length enemy-vec) 1) 0)   
 	  (setq enemy (elt enemy-vec i))
 	  (cond ( (and @enemy.hit-flag (not @enemy.dead-effect) )
@@ -148,8 +151,9 @@
 			);cond hit
 	);for
   );let
-  
 
+  ;;ゲームオーバーチェック
+  
 )
 
 ;;Nextボタン。次のターンに進めるs
@@ -233,9 +237,13 @@
   (setf @player.label.text "x")
 )
 
+(def-f fresh-player()
+  (setf @player.dead-effect nil)
+  (setf @player.label.text "P")
+)
 
 (def-f show-clear()
-  (set-text message-label "clear")
+  (setf @message-label.text "clear")
   (++ stage-no)
   (init-stage stage-no)
   );
@@ -250,7 +258,7 @@
 )
 
 (def-f show-gameover()
-  (set-text *message-label* "gameover")
+  (setf @message-label.text "gameover")
 )
 
 

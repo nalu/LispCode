@@ -1268,6 +1268,8 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   dead-effect-timer
   dead-effect-wait
   hit-flag ;;ヒットフラグ
+  state
+  state-timer
 )
 
 ;;基本の進行関数
@@ -1280,12 +1282,18 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	  (cond 
 		(@obj.dead-effect
 		  (++ @obj.dead-effect-timer)
-		  (print @obj.dead-effect-wait)
 		  (if (>= @obj.dead-effect-timer @obj.dead-effect-wait)
 			  (world-remove-obj world obj)
 			  );if
 		  );check-dead
 		);cond
+		(cond 
+		  ((not (equal @obj.state nil))
+		   (-= @obj.state-timer 1)
+		   (if (<= @obj.state-timer 0)
+			   (world-obj-set-state obj nil 0));set state nil
+			));check state
+	
 	  );let
 	);for
 
@@ -1383,6 +1391,45 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
   (setf @obj.label.text dead-str)
 )
 
+;状態セット
+(defun world-obj-set-state ( obj state time )
+  (setf @obj.state state)
+  (setf @obj.state-time time)
+)
+
+(defun get-move-x-rad (rad speed)
+  ;; (* (cos (* (/ rad 180) pi) ) speed)
+
+  ;;精度コントロール
+  (let (r-x)
+   (setq r-x (* (cos (* (/ rad 180) pi) ) speed))
+   (setq r-x (truncate r-x 1.0000))
+   r-x
+   )
+)
+
+(defun get-move-y-rad (rad speed)
+
+  (let (r-y)
+    (setq r-y (* (sin (* (/ rad 180) pi) ) speed))
+    (setq r-y (truncate r-y 1.0000))
+    r-y
+    )
+)
+
+;;矩形と矩形のヒットチェック
+(defun hitcheck-rect-in-rect ( ax ay aw ah bx by bw bh)
+  (if
+   (and 
+	(< ax (+ bx bw)) 
+	(< bx (+ ax aw))
+	(< ay (+ by bh))
+	(< by (+ ay ah)))
+   t
+   nil
+   )
+
+)
 
 
 ;;SHOOTINGクラス
@@ -1482,39 +1529,6 @@ Lisp Rough は、lispのREPLを使ってアプリケーションの開発を迅�
 	);for
 )
 
-(defun get-move-x-rad (rad speed)
-  ;; (* (cos (* (/ rad 180) pi) ) speed)
-
-  ;;精度コントロール
-  (let (r-x)
-   (setq r-x (* (cos (* (/ rad 180) pi) ) speed))
-   (setq r-x (truncate r-x 1.0000))
-   r-x
-   )
-)
-
-(defun get-move-y-rad (rad speed)
-
-  (let (r-y)
-    (setq r-y (* (sin (* (/ rad 180) pi) ) speed))
-    (setq r-y (truncate r-y 1.0000))
-    r-y
-    )
-)
-
-;;矩形と矩形のヒットチェック
-(defun hitcheck-rect-in-rect ( ax ay aw ah bx by bw bh)
-  (if
-   (and 
-	(< ax (+ bx bw)) 
-	(< bx (+ ax aw))
-	(< ay (+ by bh))
-	(< by (+ ay ah)))
-   t
-   nil
-   )
-
-)
 
 ;;>>>>>>>>>>worldに統合. shooting専用関数は廃止予定
 ;;指定のタイプのオブジェクト同士の衝突をチェックし、ダメージ処理を行なう
