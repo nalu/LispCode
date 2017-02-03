@@ -1,44 +1,36 @@
+;; ã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ãƒ†ã‚­ã‚¹ãƒˆã‚’ã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ç”¨ã®CSVã«å¤‰æ› 
+;; v1ã§ã¯ã€ï¼‘è¡Œï¼‘ã‚¿ã‚¹ã‚¯ã®ã‚¿ã‚¹ã‚¯ãƒªã‚¹ãƒˆã¨ã—ã¦ãƒ†ã‚­ã‚¹ãƒˆã‚’èª­ã¿è¾¼ã¿
+;; ç¾åœ¨ã®æ—¥ä»˜ã‚’ä»˜ä¸ã—ã¦CSVåŒ–ã—ã¦åãå‡ºã™ã‚ˆã†ã«ã™ã‚‹
 
+;;ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ
+;;ã‚¿ã‚¹ã‚¯å 4d
+;;ã‚¹ãƒšãƒ¼ã‚¹åŒºåˆ‡ã‚Šã®ï¼’å€¤ã§å®šç¾©ã€‚
 
-;; ƒXƒPƒWƒ…[ƒ‹ƒeƒLƒXƒg‚ğƒXƒPƒWƒ…[ƒ‹—p‚ÌCSV‚É•ÏŠ· 
-;; v1‚Å‚ÍA‚Ps‚Pƒ^ƒXƒN‚Ìƒ^ƒXƒNƒŠƒXƒg‚Æ‚µ‚ÄƒeƒLƒXƒg‚ğ“Ç‚İ‚İ
-;; Œ»İ‚Ì“ú•t‚ğ•t—^‚µ‚ÄCSV‰»‚µ‚Ä“f‚«o‚·‚æ‚¤‚É‚·‚é
-
-;;ƒtƒH[ƒ}ƒbƒg
-;;ƒ^ƒXƒN–¼ 4d
-;;ƒXƒy[ƒX‹æØ‚è‚Ì‚Q’l‚Å’è‹`B
-
-;;ƒ^ƒXƒN‚Íã‚©‚ç‡‚ÉAƒXƒPƒWƒ…[ƒ‹‚ª‘‚¢‚à‚Ì‚Æ‚µ‚Äˆ—‚·‚é
-
-;; (ppcre:split " " (ppcre:split #\newline "a b
-;;c d"))
-;;
-;;‚±‚ê‚Å‚¢‚¯‚é‚©‚Æ‚¨‚à‚Á‚½‚ªA
-;;newline ‚Å‚ÌsplitŒãAƒŠƒXƒg‚É‚È‚Á‚Ä‚¢‚é‚Ì‚ÅAmap‚Å•¡”‰ñsplit‚µ‚È‚¢‚Æ‚¢‚¯‚ñ
-;;Ÿ‚Í‚±‚ê‚â‚é
-
+;;ã‚¿ã‚¹ã‚¯ã¯ä¸Šã‹ã‚‰é †ã«ã€ã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ«ãŒæ—©ã„ã‚‚ã®ã¨ã—ã¦å‡¦ç†ã™ã‚‹
 
 (load "./util.lisp")
 (ql:quickload :cl-ppcre)
+(ql:quickload :metatilities)
+(ql:quickload :date-calc)
 
 (defparameter *line-str* "------------------------------------------")
 (defparameter *count-day* 0)
-(defun make-schedule-str (seed-text)
-  (let (r-str task-name task-date line-split-str list-tasks total-day)
+(defun make-schedule-str (start-day seed-text)
+  (let (r-str task-name task-date line-split-str list-tasks total-day csv-list)
 
 	(setf line-split-str (ppcre:split #\newline seed-text))
 	(setf list-tasks (map 'list (lambda (x) (ppcre:split " " x)) line-split-str))
 
-	;;"4"‚ğ4‚Ì”’l‚É•ÏŠ·
+	;;"4"ã‚’4ã®æ•°å€¤ã«å¤‰æ›
 	(setf list-tasks 
 		  (map 'list (lambda (x)  `(,(elt x 0) ,(stoi (elt x 1))) ) list-tasks))
 
-	;;‘S“ú”‚ğŒvZ
+	;;å…¨æ—¥æ•°ã‚’è¨ˆç®—
 	(setf total-day (apply '+ (map 'list (lambda (x) (elt x 1)) list-tasks)) )
 	(print (format nil "total-day ~d" total-day))
 
-	;;“ú”‚ğo‚âx‚É‚µ‚½ƒŠƒXƒg‚ğ’Ç‰Á
-	;; ( ( "tskname" 4 (x o o o x))) ‚È‚Ç
+	;;æ—¥æ•°ã‚’oã‚„xã«ã—ãŸãƒªã‚¹ãƒˆã‚’è¿½åŠ 
+	;; ( ( "tskname" 4 (x o o o x))) ãªã©
 	(setf *count-day* 0)
 	(setf list-tasks
 		  (map 'list (lambda (x) 
@@ -60,74 +52,57 @@
 
 ;	(print list-tasks)
 
-	;(("taskname" "3d") ("taskname2" "5d"))
-	;‚ÌŒ`®‚ÌƒŠƒXƒg‚ğˆ—‚µAtaskname,o,o,o‚Ì‚æ‚¤‚Ècsv—p•¶š‚ğì¬
-;; 	(setf csv-list 
-;; 		  (map 'list (lambda (x)
-;; 				 (format nil "~a~v@{~A~:*~} ~a" 
-;; 						 (elt x 0) 
-;; 						 (elt x 1)
-;; 						 "o"
-;; 						 (elt x 2))					   
-;; 				 )
-;; 		 list-tasks)
-;; 		  );setf
+	;;æ—¥ä»˜è¡Œã‚’ä½œæˆ
+	;;å®Ÿè¡Œæ™‚ã®æ—¥ä»˜ã‹ã‚‰å…¨ã‚¿ã‚¹ã‚¯åˆè¨ˆæ—¥æ•°ã¾ã§ï¼‘æ—¥ãšã¤è¶³ã—ãŸãƒªã‚¹ãƒˆã‚’ä½œã‚‹
+	;;(day, 30, 1, 2, 4, 5...
+	(let (day-list month-list current-month)
 
-	;;‚Pƒ^ƒXƒN‚Ps‚Ìcsv•¶š—ñ‚ğì¬
-	;;(o,x)•”‚ğƒtƒ‰ƒbƒg‰»
+	  (setf current-month -1)
+	  (push-back month-list "month")
+	  (push-back day-list "day")
+
+	  (for (i 0 total-day) 
+		(multiple-value-bind (year month day)
+			(date-calc:today)
+		  (multiple-value-bind (y m  next-day) 
+			(date-calc:add-delta-days year month day i);; to next
+			;;day
+			(push-back day-list next-day)
+			;;month
+			( if (not ( = current-month m))
+				 (push-back month-list m)
+				 (push-back month-list "")
+			)
+			(setf current-month m)
+			)
+		  )
+		)
+	  ;;ãƒªã‚¹ãƒˆã‚’æŒ¿å…¥
+	  (setf list-tasks (cons day-list list-tasks))
+	  (setf list-tasks (cons month-list list-tasks))
+	  )
+	  
+	
+	;;ï¼‘ã‚¿ã‚¹ã‚¯ï¼‘è¡Œã®csvæ–‡å­—åˆ—ã‚’ä½œæˆ
+	;;(o,x)éƒ¨ã‚’ãƒ•ãƒ©ãƒƒãƒˆåŒ–
 	(setf csv-list
 		  (map 'list (lambda (x)
 					   (alexandria:flatten x))
 			   list-tasks)
 		  );setf
-	;;‚Ps‚ğƒJƒ“ƒ}‹æØ‚è‰»
+	;;ï¼‘è¡Œã‚’ã‚«ãƒ³ãƒåŒºåˆ‡ã‚ŠåŒ–
 	(setf csv-list
 	 (map 'list (lambda (x) (concat-list-string x)) csv-list)
 	 )
 
-	;;‘Ss‚ğ‰üs‚Å‚Â‚È‚°•¶š—ñ‰»
+	;;å…¨è¡Œã‚’æ”¹è¡Œã§ã¤ãªã’æ–‡å­—åˆ—åŒ–
 	(setf csv-list
 		  (concat-string-delimita csv-list #\newline))
 						
-;; 	(setf csv-list 
-;; 		  (map 'list (lambda (x)
-;; 					   (format nil "~a" (concat-list-flat x ",") ) 
-;; 					   )
-;; 		 list-tasks)
-;; 		  );setf
-
-	;;‘Ss‚ğcsv•¶š—ñ‰»
-;; 	(setf csv-string
-;; 		  (map 'list (lambda 
-
-
  	(setf r-str csv-list)
 
-; 	(setf splited (ppcre:split " " seed-text)) 
-;;     (setf list-values (multiple-value-list (ppcre:scan-to-strings "(.*)d" (elt splited 1))))
-;; 	(setf day (stoi (elt (elt list-values 1) 0)))
-;; 	(setf task-name (elt splited 0))
+	
 
-;; 	(setf r-str (concatenate 'string r-str task-name))
-
-;; 	(for (j 0 day)
-;; 	  (let (count)
-;; 		(setf r-str (concatenate 'string r-str ",o"))
-;; 		);let
-;; 	  );for
-
-
-
-;;     (loop for i below 31 do
-;; 	 (setq r-str
-;; 	 (concatenate 'string
-;; 		     r-str
-;; 		     (format nil "~a ~2,'0d~2,'0d~2,'0d ~a~d" 
-;; 			     *line-str* year month (+ i 1) 
-;; 			     *line-str* #\newline );format
-;; 		     );concat
-;; 		     );setq
-;;        );loop
 
     r-str
     );let
